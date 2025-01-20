@@ -12,6 +12,8 @@
 
 id      [a-zA-Z_][a-zA-Z_0-9]*
 num     0|[1-9][0-9]*
+inline_comment \/\/[ a-zA-Z0-9'*.]*
+multiline_comment \/\*[\t\na-zA-Z0-9 .*]*\*\/
 blank   [ \t]
 
 %{
@@ -24,7 +26,7 @@ blank   [ \t]
   // potervi fare riferimento in modo più succinto
   // con una variabile locale
   yy::location& loc = drv.location;
-  
+
   // Codice eseguito ogni volta che yylex viene chiamata
   loc.step ();
 %}
@@ -65,8 +67,8 @@ blank   [ \t]
            int n;
            try {
              n = std::stoi(yytext, NULL, 10);
-           }  
-           catch(std::out_of_range& e){ 
+           }
+           catch(std::out_of_range& e){
              std::cerr << "Out of Range error: " << e.what() << '\n';
              throw yy::parser::syntax_error(loc, "Integer number too big: "
                                             + std::string(yytext));
@@ -76,10 +78,13 @@ blank   [ \t]
 
 {id}     { return yy::parser::make_IDENTIFIER (yytext, loc); }
 
+{inline_comment} {}
+{multiline_comment} {}
+
 .        { throw yy::parser::syntax_error
                (loc, "invalid character: " + std::string(yytext));
          }
-         
+
 <<EOF>>  { return yy::parser::make_EOF (loc); }
 %%
 
