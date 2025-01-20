@@ -1,13 +1,13 @@
-# Small Interpreter for a Minimal Functional Language
+# Small compiler for a Minimal Functional Language
 
-This project is a simple interpreter for a minimal functional programming language, implemented using **Flex**, **Bison**, and **Clang**. The interpreter parses and evaluates source code written in this custom language, showcasing the use of compiler construction tools and principles.
+This project is a simple compiler for a minimal functional programming language, implemented using **Flex**, **Bison**, and **Clang**. The compiler parses and evaluates source code written in this custom language, showcasing the use of compiler construction tools and principles.
 
 This code was uploaded by the professor for the **Compilers** course at University of Modena and Reggio Emilia.
 
 ## Features
 - **Custom Functional Language**: A simple syntax designed for educational purposes.
 - **Abstract Syntax Tree (AST)**: Constructs an AST for semantic analysis.
-- **Interpreter**: Evaluates expressions and handles basic functional constructs.
+- **compiler**: Evaluates expressions and handles basic functional constructs.
 
 ---
 
@@ -28,7 +28,7 @@ To build and use this project, the following tools are required:
 ---
 
 ## Language Features
-The custom functional language supported by this interpreter includes:
+The custom functional language supported by this compiler includes:
 
 ### Data Types
 - **Integer**: The only supported data type.
@@ -104,7 +104,7 @@ end
 
 ## Abstract Syntax Tree (AST) Classes
 
-The interpreter relies on an extensive class hierarchy to represent elements of the AST:
+The compiler relies on an extensive class hierarchy to represent elements of the AST:
 
 ### Base Classes
 - **`RootAST`**: The base class for all AST nodes, with virtual methods for traversing and evaluating elements.
@@ -132,7 +132,7 @@ The interpreter relies on an extensive class hierarchy to represent elements of 
 ---
 
 ## Example Source Code
-To test the interpreter, create a source file (e.g., `example.lfm`) and write the following code:
+To test the compiler, create a source file (e.g., `example.lfm`) and write the following code:
 
 ```lfm
 let x = 10,
@@ -143,8 +143,8 @@ end
 
 ### Steps to Execute
 1. Save the code in a file with the `.lfm` extension (e.g., `example.lfm`).
-2. Compile the interpreter using the instructions below.
-3. Run the interpreter, passing the filename as an argument.
+2. Compile the compiler using the instructions below.
+3. Run the compiler, passing the filename as an argument.
 
 ---
 
@@ -158,7 +158,7 @@ The project includes a `Makefile` to streamline the build process:
    make
    ```
 
-   This will generate an executable named `interpreter` in the current directory.
+   This will generate an executable named `compiler` in the current directory.
 
 3. (Optional) To clean up the build files, run:
 
@@ -168,21 +168,21 @@ The project includes a `Makefile` to streamline the build process:
 
 ---
 
-## Using the Interpreter
-After building the project, you can use the interpreter as follows:
+## Using the compiler
+After building the project, you can use the compiler as follows:
 
 ```bash
-./interpreter [options] <source_file>
+./compiler [options] <source_file>
 ```
 
 ### Available Arguments
 - `<source_file>`: Path to the source file containing the custom language code.
 - `-h` or `--help`: Displays a help message.
 - `-d` or `--debug`: Enables debug mode for verbose output during execution.
-- `-` (dash): If passed as the source file argument, the interpreter will read input directly from the standard input (stdin).
+- `-` (dash): If passed as the source file argument, the compiler will read input directly from the standard input (stdin).
 
 ---
 
 ## Additional Notes
 - The project demonstrates the integration of Flex and Bison for lexical and syntactic analysis.
-- The interpreter is designed to be extendable; you can add more language constructs by modifying `astparser.yy` and `astscanner.ll`.
+- The compiler is designed to be extendable; you can add more language constructs by modifying `astparser.yy` and `astscanner.ll`.
