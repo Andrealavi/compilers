@@ -1,0 +1,11 @@
+function f(x) 
+   (3*x)+if x>=0 : x;
+            x+2<0: if x>0 : 0;
+                      true : 5
+                   end;
+            true : -x
+         end
+end
+function main()
+   f(3)
+end
