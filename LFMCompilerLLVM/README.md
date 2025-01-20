@@ -1,6 +1,6 @@
-# Small Interpreter for a Minimal Functional Language
+# Small compiler for a Minimal Functional Language
 
-This project is a simple interpreter for a minimal functional programming language, implemented using **Flex**, **Bison**, and **LLVM**. The interpreter parses, evaluates, and generates LLVM IR code for source code written in this custom language, showcasing the use of compiler construction tools and principles.
+This project is a simple compiler for a minimal functional programming language, implemented using **Flex**, **Bison**, and **LLVM**. The compiler parses, evaluates, and generates LLVM IR code for source code written in this custom language, showcasing the use of compiler construction tools and principles.
 
 This code was uploaded by the professor for the **Compilers** course at University of Modena and Reggio Emilia.
 
@@ -150,7 +150,7 @@ For example, you can try the compiler with the provided example programs in the 
 ./lfmc -l code_examples/euclid.lfm
 ```
 
-The `code_examples` folder contains various sample programs demonstrating different language features and programming patterns supported by the interpreter.
+The `code_examples` folder contains various sample programs demonstrating different language features and programming patterns supported by the compiler.
 
 ### Options
 - `-p`: Enable parser debugging
