@@ -1,0 +1,5 @@
+global x = 2
+
+function main()
+    x*2
+end

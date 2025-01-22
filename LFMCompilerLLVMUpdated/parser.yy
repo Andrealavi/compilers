@@ -18,7 +18,7 @@
   class IfExprAST;
   class LetExprAST;
   class DefAST;
-  
+
   // Tell Flex the lexer's prototype ...
 # define YY_DECL \
   yy::parser::symbol_type yylex (driver& drv)
@@ -58,6 +58,7 @@ YY_DECL;
   FALSE      "false"
   EXTERN     "external"
   DEF        "function"
+  GLOBAL     "global"
   IF         "if"
   AND        "and"
   OR         "or"
@@ -88,6 +89,8 @@ YY_DECL;
 %type <std::pair<std::string, ExprAST*>> binding;
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
+%type <DefAST*> globdef
+
 %%
 
 %start startsymb;
@@ -101,7 +104,8 @@ deflist:
 
 def:
   extdef                { $$ = $1; }
-| funcdef               { $$ = $1; };
+| funcdef               { $$ = $1; }
+| globdef               { $$ = $1; };
 
 extdef:
   "external" prototype  { $2->setext(); $$ = $2; };
@@ -115,7 +119,7 @@ prototype:
 params:
   %empty                { std::vector<std::string> params; $$ = params; }
 | "id" params           { $2.insert($2.begin(),$1); $$ = $2;};
- 
+
 %nonassoc "<" "==" "<>" "<=" ">" ">=";
 %left "+" "-";
 %left "*" "/" "%";
@@ -137,8 +141,8 @@ expr:
 | "number"               { $$ = new NumberExprAST($1); }
 | condexpr               { $$ = $1; }
 | letexpr                { $$ = $1; };
-  
-arglist: 
+
+arglist:
   %empty                 { std::vector<ExprAST*> args; $$ = args; }
 | args                   { $$ = $1; };
 
@@ -148,14 +152,14 @@ args:
 
 condexpr:
  "if" pairs "end"        { $$ = new IfExprAST($2); };
- 
+
 pairs:
   pair                   { std::vector<std::pair<ExprAST*, ExprAST*>> P = {$1}; $$ = P; }
 | pair ";" pairs         { $3.insert($3.begin(),$1); $$ = $3; };
 
-pair: 
+pair:
   boolexpr ":" expr      { std::pair<ExprAST*,ExprAST*> P ($1,$3); $$ = P; };
-  
+
 boolexpr:
   boolexpr "and" boolexpr { $$ = new BinaryExprAST("and",$1,$3); }
 | boolexpr "or" boolexpr  { $$ = new BinaryExprAST("or",$1,$3); }
@@ -175,16 +179,20 @@ relexpr:
 | expr ">"  expr          { $$ = new BinaryExprAST(">",$1,$3); }
 | expr ">=" expr          { $$ = new BinaryExprAST(">=",$1,$3); }
 
-letexpr: 
+letexpr:
   "let" bindings "in" expr "end" { $$ = new LetExprAST($2,$4); };
+
+globdef:
+  "global" "id"           { $$ = new GlobalDefAST($2); }
+| "global" "id" "=" expr        { $$ = new GlobalDefAST($2, $4); };
 
 bindings:
   binding                 { std::vector<std::pair<std::string, ExprAST*>> B = {$1}; $$ = B; }
 | binding "," bindings    { $3.insert($3.begin(),$1); $$ = $3; };
-  
+
 binding:
   "id" "=" expr           { std::pair<std::string, ExprAST*> C ($1,$3); $$ = C; };
- 
+
 %%
 
 void yy::parser::error (const location_type& l, const std::string& m)

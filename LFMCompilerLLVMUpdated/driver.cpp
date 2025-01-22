@@ -120,10 +120,17 @@ Value *IdeExprAST::codegen(driver& drv) {
 
     AllocaInst *L = drv.NamedValues[Name];
 
-    if (L) {  // Semantic check
-        Value *V = builder->CreateLoad(Type::getInt32Ty(*context), L, Name);
+    if (L) {
+        Value *V = builder->CreateLoad(Type::getInt32Ty(*context),
+                                        L, Name);
         return V;
-    };
+    } else {
+        GlobalVariable* G = module->getNamedGlobal(Name);
+
+        if (G) {
+            return builder->CreateLoad(G->getValueType(), G, Name);
+        }
+    }
 
     return LogErrorV("Variable "+Name+" not defined");
 };
@@ -449,6 +456,43 @@ Value *LetExprAST::codegen(driver& drv) {
     }
     }
    	return letVal;
+};
+
+/// GlobalDefAST
+GlobalDefAST::GlobalDefAST(std::string name): name(name) {
+   Val = new NumberExprAST(0);
+};
+GlobalDefAST::GlobalDefAST(std::string name, ExprAST* Val):
+         name(name), Val(Val) {initialized = true;};
+
+void GlobalDefAST::visit() {
+    *drv.outputTarget << "[global " << drv.opening << name << drv.closing;
+    Val->visit();
+    *drv.outputTarget << "]";
+};
+
+Value *GlobalDefAST::codegen(driver& drv) {
+    GlobalVariable* G = module->getNamedGlobal(name);
+
+    if (G) {
+        LogErrorV("Variabile globale "+name+" già definita");
+        return nullptr;
+    };
+
+    ConstantInt* V = static_cast<ConstantInt*>(Val->codegen(drv));
+
+    if (V) {
+        G = new GlobalVariable(*module,
+                                IntegerType::get(*context,32),
+                                true,
+                                GlobalValue::WeakAnyLinkage,
+                                V,
+                                name);
+        G->print(errs());
+        fprintf(stderr, "\n");
+        return G;
+    }
+    return nullptr;
 };
 
 /// PrototypeAST

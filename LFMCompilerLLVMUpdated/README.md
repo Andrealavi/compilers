@@ -21,3 +21,8 @@ For the stable version of this compiler, please visit the main repository:
   {inline_comment} {}
   {multiline_comment} {}
   ```
+- Support to global variables:
+  - Added the `GlobalDefAST` class in order to implement global variables
+  - Used the `GlobalVariable` LLVM class in order to create the global variable in the IR code
+  - Added an if within `IdeExprAst` `codegen` method in order to check for global variable existence
+  - Added a new example to test global variables

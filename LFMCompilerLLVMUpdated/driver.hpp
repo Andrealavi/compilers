@@ -172,6 +172,20 @@ class LetExprAST : public ExprAST {
     	Value *codegen(driver& drv) override;
 };
 
+/// GlobalDefAST - Class for representing global variables
+class GlobalDefAST : public DefAST {
+    private:
+    	std::string name;
+        bool initialized = false;
+        ExprAST* Val;
+
+    public:
+    	GlobalDefAST(std::string name);
+        GlobalDefAST(std::string name, ExprAST* Val);
+    	void visit() override;
+    	Value *codegen(driver& drv) override;
+};
+
 /// PrototypeAST - Class for representing function prototypes
 /// (name, number and name of parameters; in this case the type is implicit
 /// because it's unique)
