@@ -1,4 +1,4 @@
-# Small Interpreter for a Minimal Functional Language
+# Small Compiler for a Minimal Functional Language
 
 This version is used for adding new features to the compiler, in order to prepare for the **Compilers** exam.
 
