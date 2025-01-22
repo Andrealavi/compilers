@@ -42,6 +42,7 @@ YY_DECL;
   MINUS      "-"
   PLUS       "+"
   STAR       "*"
+  EXP        "^"
   SLASH      "/"
   MOD        "%"
   LPAREN     "("
@@ -133,6 +134,7 @@ expr:
 | expr "-" expr          { $$ = new BinaryExprAST("-",$1,$3); }
 | expr "*" expr          { $$ = new BinaryExprAST("*",$1,$3); }
 | expr "/" expr          { $$ = new BinaryExprAST("/",$1,$3); }
+| expr "^" expr          { $$ = new ExponentiationExprAST($1, $3); }
 | expr "%" expr          { $$ = new BinaryExprAST("%",$1,$3); }
 | "-" expr %prec UMINUS  { $$ = new UnaryExprAST("-",$2); }
 | "(" expr ")"           { $$ = $2; }

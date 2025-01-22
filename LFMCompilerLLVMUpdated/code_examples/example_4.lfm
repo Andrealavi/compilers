@@ -1,0 +1,9 @@
+function fun(x)
+    if x > 5 : x;
+        x < 3 : x ^ 3;
+        true: -x
+    end
+end
+function main()
+    fun(6)
+end

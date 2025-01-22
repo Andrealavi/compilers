@@ -143,7 +143,7 @@ void BinaryExprAST::visit() {
     *drv.outputTarget << drv.opening << Op;
 
     if (drv.toLatex) {
-    *drv.outputTarget << "$ ";
+        *drv.outputTarget << "$ ";
     } else{
         *drv.outputTarget << " ";
     }
@@ -183,6 +183,72 @@ Value *BinaryExprAST::codegen(driver& drv) {
     else {
         return LogErrorV("Binary operator "+Op+" not supported");
     }
+};
+
+/// ExponentiationExprAST
+ExponentiationExprAST::ExponentiationExprAST(ExprAST* Base, ExprAST* Exponent) : Base(Base), Exponent(Exponent) {};
+
+void ExponentiationExprAST::visit() {
+    *drv.outputTarget << drv.opening << "^";
+
+    if (drv.toLatex) {
+        *drv.outputTarget << "$ ";
+    } else{
+        *drv.outputTarget << " ";
+    }
+
+    Base->visit();
+    Exponent->visit();
+    *drv.outputTarget << "]";
+};
+
+Value *ExponentiationExprAST::codegen(driver& drv) {
+    Value *B = Base->codegen(drv);
+    Value *E = Exponent->codegen(drv);
+
+    if (!B || !E) {
+        return nullptr;
+    }
+
+    Value *res = ConstantInt::get(*context, APInt(32,1));
+
+    Function *function = builder->GetInsertBlock()->getParent();
+    BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
+    BasicBlock *afterBlock = BasicBlock::Create(*context, "after", function);
+
+    AllocaInst *BaseInst = MakeAlloca(function, "base");
+    AllocaInst *ExpInst = MakeAlloca(function, "exp");
+    AllocaInst *ResInst = MakeAlloca(function, "res");
+
+    builder->CreateStore(B, BaseInst);
+    builder->CreateStore(E, ExpInst);
+    builder->CreateStore(res, ResInst);
+
+    Value *loadedExp = builder->CreateLoad(ExpInst->getAllocatedType(), ExpInst, "exp");
+
+    Value *initialCondition = builder->CreateICmpSGT(loadedExp, ConstantInt::get(*context, APInt(32,0)), "cmpgt");
+
+    builder->CreateCondBr(initialCondition, loopBlock, afterBlock);
+
+    builder->SetInsertPoint(loopBlock);
+
+    B = builder->CreateLoad(ResInst->getAllocatedType(), BaseInst, "base");
+    res = builder->CreateLoad(ResInst->getAllocatedType(), ResInst, "res");
+    res = builder->CreateNSWMul(res, B, "prod");
+    builder->CreateStore(res, ResInst);
+
+    E = builder->CreateLoad(ExpInst->getAllocatedType(), ExpInst, "exp");
+    E = builder->CreateNSWSub(E, ConstantInt::get(*context, APInt(32,1)), "diff");
+    builder->CreateStore(E, ExpInst);
+
+    loadedExp = builder->CreateLoad(ExpInst->getAllocatedType(), ExpInst, "exp");
+
+    Value *loopCondition = builder->CreateICmpSGT(loadedExp, ConstantInt::get(*context, APInt(32,0)), "cmpgt");
+    builder->CreateCondBr(loopCondition, loopBlock, afterBlock);
+
+    builder->SetInsertPoint(afterBlock);
+
+    return res;
 };
 
 /// UnaryExprAST

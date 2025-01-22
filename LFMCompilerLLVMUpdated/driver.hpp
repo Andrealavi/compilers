@@ -125,6 +125,18 @@ class BinaryExprAST : public ExprAST {
     	Value *codegen(driver& drv) override;
 };
 
+/// ExponentiationExprAST - Class for representing exponentiation operator
+class ExponentiationExprAST : public ExprAST {
+    private:
+    	ExprAST* Base;
+    	ExprAST* Exponent;
+
+    public:
+    	ExponentiationExprAST(ExprAST* Base, ExprAST* Exponent);
+    	void visit() override;
+    	Value *codegen(driver& drv) override;
+};
+
 /// UnaryExprAST - Class for representing unary operators
 class UnaryExprAST : public ExprAST {
     private:
