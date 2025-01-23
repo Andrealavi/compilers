@@ -1,3 +1,5 @@
+#include <csignal>
+#include <cstdlib>
 #include <fstream>
 #include "driver.hpp"
 #include "parser.hpp"
@@ -232,7 +234,7 @@ Value *ExponentiationExprAST::codegen(driver& drv) {
 
     builder->SetInsertPoint(loopBlock);
 
-    B = builder->CreateLoad(ResInst->getAllocatedType(), BaseInst, "base");
+    B = builder->CreateLoad(BaseInst->getAllocatedType(), BaseInst, "base");
     res = builder->CreateLoad(ResInst->getAllocatedType(), ResInst, "res");
     res = builder->CreateNSWMul(res, B, "prod");
     builder->CreateStore(res, ResInst);
@@ -513,13 +515,16 @@ Value *LetExprAST::codegen(driver& drv) {
 
         drv.NamedValues[ide] = BInst;
     }
+
     Value *letVal = Body->codegen(drv);
+
     for (int j=0, e=Bindings.size(); j<e; j++) {
-    std::string ide = Bindings.at(j).first;
-    it = AllocaTmp.find(ide);
-    if (it != AllocaTmp.end()) {
-        drv.NamedValues[ide] = AllocaTmp[ide];
-    }
+        std::string ide = Bindings.at(j).first;
+        it = AllocaTmp.find(ide);
+
+        if (it != AllocaTmp.end()) {
+            drv.NamedValues[ide] = AllocaTmp[ide];
+        }
     }
    	return letVal;
 };
@@ -707,4 +712,92 @@ Function *FunctionAST::codegen(driver& drv) {
     // definition from the module.
     function->eraseFromParent();
     return nullptr;
+};
+
+/// ForExprAST
+///
+ForExprAST::ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* Body)
+    : binding(binding), condExpr(condExpr), endExpr(endExpr), Body(Body) {};
+
+void ForExprAST::visit() {
+    *drv.outputTarget << "[for [expressions";
+
+    binding.second->visit();
+    condExpr->visit();
+    endExpr->visit();
+
+    *drv.outputTarget << "][in ";
+    Body->visit();
+    *drv.outputTarget << "]]";
+};
+
+Value* ForExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
+    BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
+    BasicBlock *updateBlock = BasicBlock::Create(*context, "update", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
+
+
+    std::string ide = binding.first;
+    Value *counterValue = binding.second->codegen(drv);
+
+    if (!counterValue) {
+        return nullptr;
+    }
+
+    AllocaInst *counterInst = MakeAlloca(function, ide);
+    builder->CreateStore(counterValue, counterInst);
+
+    std::pair<std::string, AllocaInst*> allocaTmp;
+    std::map<std::string,AllocaInst*>::iterator it;
+
+    allocaTmp.first = ide;
+
+    it = drv.NamedValues.find(ide);
+    if (it != drv.NamedValues.end()) {
+        allocaTmp.second = drv.NamedValues[ide];
+    }
+
+    drv.NamedValues[ide] = counterInst;
+
+    AllocaInst *bodyInst = MakeAlloca(function, "bodyResult");
+    builder->CreateStore(ConstantInt::get(*context, APInt(32,0)), bodyInst);
+
+    builder->CreateBr(conditionBlock);
+    builder->SetInsertPoint(conditionBlock);
+
+    Value *condExprValue = condExpr->codegen(drv);
+
+    if (!condExprValue) {
+        return nullptr;
+    }
+
+    builder->CreateCondBr(condExprValue, loopBlock, exitBlock);
+
+    builder->SetInsertPoint(loopBlock);
+
+    Value *forVal = Body->codegen(drv);
+    builder->CreateStore(forVal, bodyInst);
+
+    builder->CreateBr(updateBlock);
+
+    builder->SetInsertPoint(updateBlock);
+
+    Value *endExprValue = endExpr->codegen(drv);
+    builder->CreateStore(endExprValue, counterInst);
+
+    builder->CreateBr(conditionBlock);
+
+    builder->SetInsertPoint(exitBlock);
+
+    forVal = builder->CreateLoad(bodyInst->getAllocatedType(), bodyInst, "bodyResult");
+
+    if (it != drv.NamedValues.find(ide)) {
+        drv.NamedValues[ide] = allocaTmp.second;
+    }
+
+    return forVal;
+
 };

@@ -231,4 +231,18 @@ class FunctionAST : public DefAST {
     	int nparams();
 };
 
+/// ForExprAST - Class that represents a for construct
+class ForExprAST : public ExprAST {
+    private:
+        std::pair<std::string, ExprAST*> binding;
+        ExprAST* condExpr;
+        ExprAST* endExpr;
+        ExprAST* Body;
+
+    public:
+        ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* Body);
+        Value *codegen(driver& drv) override;
+        void visit() override;
+};
+
 #endif // ! DRIVER_HH

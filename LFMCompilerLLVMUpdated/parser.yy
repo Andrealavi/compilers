@@ -60,6 +60,7 @@ YY_DECL;
   EXTERN     "external"
   DEF        "function"
   GLOBAL     "global"
+  FOR        "for"
   IF         "if"
   AND        "and"
   OR         "or"
@@ -91,6 +92,7 @@ YY_DECL;
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
 %type <DefAST*> globdef
+%type <ExprAST*> forexpr
 
 %%
 
@@ -124,6 +126,7 @@ params:
 %nonassoc "<" "==" "<>" "<=" ">" ">=";
 %left "+" "-";
 %left "*" "/" "%";
+%right "^";
 %nonassoc UMINUS;
 %left "or";
 %left "and";
@@ -142,6 +145,7 @@ expr:
 | "id" "(" arglist ")"   { $$ = new CallExprAST($1,$3); }
 | "number"               { $$ = new NumberExprAST($1); }
 | condexpr               { $$ = $1; }
+| forexpr                { $$ = $1; }
 | letexpr                { $$ = $1; };
 
 arglist:
@@ -153,7 +157,10 @@ args:
 | expr "," args          { $3.insert($3.begin(),$1); $$ = $3; };
 
 condexpr:
- "if" pairs "end"        { $$ = new IfExprAST($2); };
+  "if" pairs "end"        { $$ = new IfExprAST($2); };
+
+forexpr:
+  "for" "(" binding ";" boolexpr ";" expr ")" expr "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
 
 pairs:
   pair                   { std::vector<std::pair<ExprAST*, ExprAST*>> P = {$1}; $$ = P; }

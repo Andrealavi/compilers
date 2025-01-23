@@ -56,7 +56,8 @@ blank   [ \t]
 "false"  return yy::parser::make_FALSE     (loc);
 "external" return yy::parser::make_EXTERN  (loc);
 "function" return yy::parser::make_DEF     (loc);
-"global" return yy::parser::make_GLOBAL     (loc);
+"global" return yy::parser::make_GLOBAL    (loc);
+"for"    return yy::parser::make_FOR       (loc);
 "if"     return yy::parser::make_IF        (loc);
 "and"    return yy::parser::make_AND       (loc);
 "or"     return yy::parser::make_OR        (loc);
