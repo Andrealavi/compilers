@@ -61,6 +61,7 @@ YY_DECL;
   DEF        "function"
   GLOBAL     "global"
   FOR        "for"
+  RETURN     "return"
   IF         "if"
   AND        "and"
   OR         "or"
@@ -93,6 +94,8 @@ YY_DECL;
 %type <ExprAST*> relexpr
 %type <DefAST*> globdef
 %type <ExprAST*> forexpr
+%type <ExprAST*> retexpr
+%type <std::vector<ExprAST*>> exprs
 
 %%
 
@@ -114,7 +117,7 @@ extdef:
   "external" prototype  { $2->setext(); $$ = $2; };
 
 funcdef:
-  "function" prototype expr "end"  { $$ = new FunctionAST($2,$3); };
+  "function" prototype exprs "end"  { $$ = new FunctionAST($2,$3); };
 
 prototype:
   "id" "(" params ")"   { $$ = new PrototypeAST($1,$3); };
@@ -148,6 +151,11 @@ expr:
 | forexpr                { $$ = $1; }
 | letexpr                { $$ = $1; };
 
+exprs:
+  expr ";" exprs         { $3.insert($3.begin(), $1); $$ = $3;}
+| expr                   { std::vector<ExprAST*> V = {$1}; $$ = V; }
+| retexpr                { std::vector<ExprAST*> V = {$1}; $$ = V; };
+
 arglist:
   %empty                 { std::vector<ExprAST*> args; $$ = args; }
 | args                   { $$ = $1; };
@@ -175,6 +183,9 @@ boolexpr:
 | "not" boolexpr  %prec NEGATE { $$ = new UnaryExprAST("not",$2); }
 | literal                 { $$ = $1; }
 | relexpr                 { $$ = $1; };
+
+retexpr:
+  "return" expr           { $$ = new RetExprAST($2); };
 
 literal:
   "true"                  { $$ = new BoolConstAST(1); }

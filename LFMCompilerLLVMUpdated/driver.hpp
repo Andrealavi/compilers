@@ -112,6 +112,17 @@ class IdeExprAST : public ExprAST {
     	Value *codegen(driver& drv) override;
 };
 
+/// RetExprAST - Class that represents the return instruction
+class RetExprAST : public ExprAST {
+    private:
+        ExprAST* returnExpr;
+
+    public:
+        RetExprAST(ExprAST* returnExpr);
+        void visit() override;
+        Value *codegen(driver& drv) override;
+};
+
 /// BinaryExprAST - Class for representing binary operators
 class BinaryExprAST : public ExprAST {
     private:
@@ -221,11 +232,11 @@ class PrototypeAST : public DefAST {
 class FunctionAST : public DefAST {
     private:
     	PrototypeAST* Proto;
-    	ExprAST* Body;
+    	std::vector<ExprAST*> Body;
     	bool external;
 
     public:
-    	FunctionAST(PrototypeAST* Proto, ExprAST* Body);
+    	FunctionAST(PrototypeAST* Proto, std::vector<ExprAST*> Body);
     	Function *codegen(driver& drv) override;
     	void visit() override;
     	int nparams();

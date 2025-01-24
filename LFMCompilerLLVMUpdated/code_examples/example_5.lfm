@@ -1,9 +1,11 @@
 function f(x)
     for (i = 1; i < 10; i + 1)
         x * i
-    end
+    end;
+
+    return x
 end
 
 function main()
-   f(2)
+   return f(2)
 end

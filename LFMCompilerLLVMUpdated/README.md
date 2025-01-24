@@ -72,3 +72,11 @@ For the stable version of this compiler, please visit the main repository:
       %bodyResult6 = load i32, ptr %bodyResult, align 4
       ret i32 %bodyResult6
     ```
+- Support to return instruction:
+  - Modified the grammar in order to make it possible to use `return` instruction in function
+  - Is now mandatory to use the instruction in order to return a value, otherwise 0 will be returned
+  - Added a new AST node to manage return expression (`RetExprAST`)
+  - Modified the function `codegen` method:
+    - Now the body is a vector of expressions
+  - Added a new example (`./code_examples/example_6.lfm`) to test it
+  - Modified a previous example (`./code_examples/example_5.lfm`) to present another use case

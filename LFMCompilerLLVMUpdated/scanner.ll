@@ -58,6 +58,7 @@ blank   [ \t]
 "function" return yy::parser::make_DEF     (loc);
 "global" return yy::parser::make_GLOBAL    (loc);
 "for"    return yy::parser::make_FOR       (loc);
+"return" return yy::parser::make_RETURN    (loc);
 "if"     return yy::parser::make_IF        (loc);
 "and"    return yy::parser::make_AND       (loc);
 "or"     return yy::parser::make_OR        (loc);

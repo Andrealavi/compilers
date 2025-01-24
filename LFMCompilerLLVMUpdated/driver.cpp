@@ -1,3 +1,4 @@
+#include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <fstream>
@@ -136,6 +137,24 @@ Value *IdeExprAST::codegen(driver& drv) {
 
     return LogErrorV("Variable "+Name+" not defined");
 };
+
+/// RetExprAST
+RetExprAST::RetExprAST(ExprAST* returnExpr) : returnExpr(returnExpr) {};
+
+void RetExprAST::visit() {
+    *drv.outputTarget << "[return ";
+
+    returnExpr->visit();
+
+    *drv.outputTarget << "]";
+};
+
+Value* RetExprAST::codegen(driver& drv) {
+    Value* returnValue = returnExpr->codegen(drv);
+
+    return builder->CreateRet(returnValue);
+};
+
 
 /// BinaryExprAST
 BinaryExprAST::BinaryExprAST(std::string Op, ExprAST* LHS, ExprAST* RHS):
@@ -631,13 +650,17 @@ Function *PrototypeAST::codegen(driver& drv) {
 }
 
 /// FunctionAST
-FunctionAST::FunctionAST(PrototypeAST* Proto, ExprAST* Body): Proto(Proto), Body(Body) {};
+FunctionAST::FunctionAST(PrototypeAST* Proto, std::vector<ExprAST*> Body): Proto(Proto), Body(Body) {};
 
 void FunctionAST::visit() {
   	 *drv.outputTarget << "[function ";
   	 Proto->visit();
-  	 Body->visit();
-  	 *drv.outputTarget << "]";
+
+    for (ExprAST* expr: Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]";
 };
 
 int FunctionAST::nparams() {
@@ -694,28 +717,43 @@ Function *FunctionAST::codegen(driver& drv) {
 
     // Now we can finally generate the code corresponding to the body (which can
     // reference the symbol table)
-    if (Value *RetVal = Body->codegen(drv)) {
-        // If the generation ends without errors, what remains to be done is
-        // to generate the return instruction, which ("at runtime") will take
-        // the value left in the RetVal register
-        builder->CreateRet(RetVal);
-        // We also perform code validation and consistency check
-        verifyFunction(*function);
+    //
 
-        // ... and finally emit the function code to stderr
-        function->print(errs());
-        fprintf(stderr, "\n");
-        return function;
+    Value *LastVal = nullptr;
+    bool hasExplicitReturn = false;
+
+    // Generating IR for each expression within the function body
+    for (ExprAST* expr: Body) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (!exprVal) {
+            // If the body caused an error, we delete the function
+            // definition from the module.
+            function->eraseFromParent();
+            return nullptr;
+        }
+
+        // Check if the current expression is a return expression
+        if (ExprAST* RetExpr = dynamic_cast<RetExprAST*>(expr)) {
+            hasExplicitReturn = true;
+
+            LastVal = exprVal;
+        }
     }
 
-    // If instead the body caused an error, we delete the function
-    // definition from the module.
-    function->eraseFromParent();
-    return nullptr;
+    // If there is no return expression, 0 is returned
+    if (!hasExplicitReturn) {
+        builder->CreateRet(ConstantInt::get(*context, APInt(32,0)));
+    }
+
+    // finally emit the function code to stderr
+    function->print(errs());
+    fprintf(stderr, "\n");
+
+    return function;
 };
 
 /// ForExprAST
-///
 ForExprAST::ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* Body)
     : binding(binding), condExpr(condExpr), endExpr(endExpr), Body(Body) {};
 
@@ -799,5 +837,4 @@ Value* ForExprAST::codegen(driver& drv) {
     }
 
     return forVal;
-
 };

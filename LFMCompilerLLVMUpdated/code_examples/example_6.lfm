@@ -1,0 +1,6 @@
+function f(x)
+    return x*2
+end
+function main()
+    return f(2)
+end
