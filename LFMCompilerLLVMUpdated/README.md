@@ -38,7 +38,7 @@ For the stable version of this compiler, please visit the main repository:
   - Its syntax is similar to C++, so it is `for (int i = 0; i < 10; i + 1) expression end`
   - At the moment its usage is limited by the fact that do not exist assignments
   - It returns the value of the expression at the last iteration
-  - Added a new example `./code_examples/example_5.lfm` to test it
+  - Added a new example (`./code_examples/example_5.lfm`) to test it
   - The structure of the LLVM IR code is something like the following (example take from `./code_examples/example_5.lfm`) :
     ```LLVM
     entry:
