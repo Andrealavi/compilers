@@ -772,12 +772,17 @@ void ForExprAST::visit() {
 Value* ForExprAST::codegen(driver& drv) {
     Function *function = builder->GetInsertBlock()->getParent();
 
+    // In order to implement the for in the IR four BB are created:
+    // conditionBlock: checks the for condition and operate the related branching
+    // loopBlock: executes the loop instructions
+    // updateBlock: updates the loop counter variable
+    // exitBlock: returns the value computed by the loopBlock
     BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
     BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
     BasicBlock *updateBlock = BasicBlock::Create(*context, "update", function);
     BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
 
-
+    // Entry BB
     std::string ide = binding.first;
     Value *counterValue = binding.second->codegen(drv);
 
@@ -793,6 +798,8 @@ Value* ForExprAST::codegen(driver& drv) {
 
     allocaTmp.first = ide;
 
+    // Checks if a variable with the same name given to the counter has already been declared
+    // If so, it is saved in a temporary register in order to use the symbol table
     it = drv.NamedValues.find(ide);
     if (it != drv.NamedValues.end()) {
         allocaTmp.second = drv.NamedValues[ide];
@@ -804,6 +811,8 @@ Value* ForExprAST::codegen(driver& drv) {
     builder->CreateStore(ConstantInt::get(*context, APInt(32,0)), bodyInst);
 
     builder->CreateBr(conditionBlock);
+
+    // Condition BB
     builder->SetInsertPoint(conditionBlock);
 
     Value *condExprValue = condExpr->codegen(drv);
@@ -814,13 +823,16 @@ Value* ForExprAST::codegen(driver& drv) {
 
     builder->CreateCondBr(condExprValue, loopBlock, exitBlock);
 
+    // Loop BB
     builder->SetInsertPoint(loopBlock);
 
+    // The value computed within the loop is stored in order to be returned
     Value *forVal = Body->codegen(drv);
     builder->CreateStore(forVal, bodyInst);
 
     builder->CreateBr(updateBlock);
 
+    // Update BB
     builder->SetInsertPoint(updateBlock);
 
     Value *endExprValue = endExpr->codegen(drv);
@@ -828,6 +840,7 @@ Value* ForExprAST::codegen(driver& drv) {
 
     builder->CreateBr(conditionBlock);
 
+    // Exit BB
     builder->SetInsertPoint(exitBlock);
 
     forVal = builder->CreateLoad(bodyInst->getAllocatedType(), bodyInst, "bodyResult");
