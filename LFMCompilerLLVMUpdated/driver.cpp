@@ -138,6 +138,44 @@ Value *IdeExprAST::codegen(driver& drv) {
     return LogErrorV("Variable "+Name+" not defined");
 };
 
+/// AssignmentExprAST
+AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding)
+    : binding(binding) {};
+
+lexval AssignmentExprAST::getLexVal() const {
+    lexval lval = binding.first;
+    return lval;
+};
+
+void AssignmentExprAST::visit() {
+    *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
+    binding.second->visit();
+    *drv.outputTarget << "]";
+};
+
+Value *AssignmentExprAST::codegen(driver& drv) {
+    AllocaInst *BInst;
+    std::map<std::string,AllocaInst*>::iterator it;
+
+    it = drv.NamedValues.find(binding.first);
+
+
+    if (it != drv.NamedValues.end()) {
+        BInst = drv.NamedValues[binding.first];
+    } else {
+        Function *function = builder->GetInsertBlock()->getParent();
+
+        BInst = MakeAlloca(function, binding.first);
+        drv.NamedValues[binding.first] = BInst;
+    }
+
+    Value *boundval = binding.second->codegen(drv);
+
+    builder->CreateStore(boundval, BInst);
+
+    return boundval;
+};
+
 /// RetExprAST
 RetExprAST::RetExprAST(ExprAST* returnExpr) : returnExpr(returnExpr) {};
 
@@ -754,18 +792,23 @@ Function *FunctionAST::codegen(driver& drv) {
 };
 
 /// ForExprAST
-ForExprAST::ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* Body)
+ForExprAST::ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body)
     : binding(binding), condExpr(condExpr), endExpr(endExpr), Body(Body) {};
 
 void ForExprAST::visit() {
     *drv.outputTarget << "[for [expressions";
 
+    *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
     binding.second->visit();
     condExpr->visit();
     endExpr->visit();
 
     *drv.outputTarget << "][in ";
-    Body->visit();
+
+    for (ExprAST* expr: Body) {
+        expr->visit();
+    }
+
     *drv.outputTarget << "]]";
 };
 
@@ -807,9 +850,6 @@ Value* ForExprAST::codegen(driver& drv) {
 
     drv.NamedValues[ide] = counterInst;
 
-    AllocaInst *bodyInst = MakeAlloca(function, "bodyResult");
-    builder->CreateStore(ConstantInt::get(*context, APInt(32,0)), bodyInst);
-
     builder->CreateBr(conditionBlock);
 
     // Condition BB
@@ -826,9 +866,16 @@ Value* ForExprAST::codegen(driver& drv) {
     // Loop BB
     builder->SetInsertPoint(loopBlock);
 
+    Value *retVal = ConstantInt::get(*context, APInt(32,0));
+
     // The value computed within the loop is stored in order to be returned
-    Value *forVal = Body->codegen(drv);
-    builder->CreateStore(forVal, bodyInst);
+    for (ExprAST* expr: Body) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (dynamic_cast<RetExprAST*>(expr)) {
+            retVal = exprVal;
+        }
+    }
 
     builder->CreateBr(updateBlock);
 
@@ -843,11 +890,9 @@ Value* ForExprAST::codegen(driver& drv) {
     // Exit BB
     builder->SetInsertPoint(exitBlock);
 
-    forVal = builder->CreateLoad(bodyInst->getAllocatedType(), bodyInst, "bodyResult");
-
     if (it != drv.NamedValues.find(ide)) {
         drv.NamedValues[ide] = allocaTmp.second;
     }
 
-    return forVal;
+    return retVal;
 };

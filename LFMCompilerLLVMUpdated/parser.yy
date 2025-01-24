@@ -152,8 +152,11 @@ expr:
 | letexpr                { $$ = $1; };
 
 exprs:
-  expr ";" exprs         { $3.insert($3.begin(), $1); $$ = $3;}
+  %empty                 { std::vector<ExprAST*> V = {}; $$ = V; }
+| expr ";" exprs         { $3.insert($3.begin(), $1); $$ = $3;}
+| binding ";" exprs      { $3.insert($3.begin(), new AssignmentExprAST($1)); $$ = $3; }
 | expr                   { std::vector<ExprAST*> V = {$1}; $$ = V; }
+| binding                { std::vector<ExprAST*> V = { new AssignmentExprAST($1) }; $$ = V; }
 | retexpr                { std::vector<ExprAST*> V = {$1}; $$ = V; };
 
 arglist:
@@ -168,14 +171,15 @@ condexpr:
   "if" pairs "end"        { $$ = new IfExprAST($2); };
 
 forexpr:
-  "for" "(" binding ";" boolexpr ";" expr ")" expr "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
+  "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
 
 pairs:
   pair                   { std::vector<std::pair<ExprAST*, ExprAST*>> P = {$1}; $$ = P; }
 | pair ";" pairs         { $3.insert($3.begin(),$1); $$ = $3; };
 
 pair:
-  boolexpr ":" expr      { std::pair<ExprAST*,ExprAST*> P ($1,$3); $$ = P; };
+  boolexpr ":" expr      { std::pair<ExprAST*,ExprAST*> P ($1,$3); $$ = P; }
+| boolexpr ":" binding   { std::pair<ExprAST*,ExprAST*> P ($1, new AssignmentExprAST($3)); $$ = P; };
 
 boolexpr:
   boolexpr "and" boolexpr { $$ = new BinaryExprAST("and",$1,$3); }

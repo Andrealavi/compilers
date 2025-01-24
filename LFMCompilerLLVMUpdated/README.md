@@ -1,6 +1,7 @@
 # Small Compiler for a Minimal Functional Language
 
 This version is used for adding new features to the compiler, in order to prepare for the **Compilers** exam.
+As new features are added backward compatibility can be affected.
 
 ## Main Repository
 
@@ -80,3 +81,9 @@ For the stable version of this compiler, please visit the main repository:
     - Now the body is a vector of expressions
   - Added a new example (`./code_examples/example_6.lfm`) to test it
   - Modified a previous example (`./code_examples/example_5.lfm`) to present another use case
+- Support to assignments:
+  - Now is possible to use assignments not only in let expressions but also inside functions, fors and ifs
+  - The assignments create a new variable if the identifier was not used, otherwise it overwrites the previous value
+  - Updated `scanner.yy` grammar rules in order to allow for assignments in reductions
+  - Added a new AST node (`AssignmentExprAST`) for representing assignments
+  - Added a new example (`./code_examples/example_7.lfm`) to test assignments

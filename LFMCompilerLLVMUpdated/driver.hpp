@@ -112,6 +112,18 @@ class IdeExprAST : public ExprAST {
     	Value *codegen(driver& drv) override;
 };
 
+/// AssignmentExprAST - Class for representing assignments
+class AssignmentExprAST : public ExprAST {
+    private:
+        std::pair<std::string, ExprAST*> binding;
+
+    public:
+        AssignmentExprAST(std::pair<std::string, ExprAST*> binding);
+        lexval getLexVal() const;
+        void visit() override;
+        Value *codegen(driver& drv) override;
+};
+
 /// RetExprAST - Class that represents the return instruction
 class RetExprAST : public ExprAST {
     private:
@@ -248,10 +260,10 @@ class ForExprAST : public ExprAST {
         std::pair<std::string, ExprAST*> binding;
         ExprAST* condExpr;
         ExprAST* endExpr;
-        ExprAST* Body;
+        std::vector<ExprAST*> Body;
 
     public:
-        ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* Body);
+        ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body);
         Value *codegen(driver& drv) override;
         void visit() override;
 };

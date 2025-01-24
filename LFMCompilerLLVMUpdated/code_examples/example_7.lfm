@@ -1,0 +1,15 @@
+function f(x)
+    for (i = 1; i < 10; i+1)
+        x = x + i
+    end;
+
+    if x > 5 : x = 150;
+        true : x
+    end;
+
+    return x
+end
+
+function main()
+    return f(1)
+end
