@@ -1,9 +1,6 @@
-#include <atomic>
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
-#include <fstream>
-#include <vector>
 #include "driver.hpp"
 #include "parser.hpp"
 
