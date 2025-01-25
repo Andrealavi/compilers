@@ -181,8 +181,20 @@ class CallExprAST : public ExprAST {
     public:
     	CallExprAST(std::string Callee, std::vector<ExprAST*> Args);
     	lexval getLexVal() const;
+        void addArg(ExprAST* arg);
     	void visit() override;
     	Value *codegen(driver& drv) override;
+};
+
+/// PipExprAST - Class for representing pipeline function calls
+class PipExprAST : public ExprAST {
+    private:
+        std::vector<ExprAST*> Calls;
+
+    public:
+        PipExprAST(std::vector<ExprAST*> Calls);
+        void visit() override;
+        Value *codegen(driver& drv) override;
 };
 
 /// IfExprAST - Class that represents the "conditional" construct

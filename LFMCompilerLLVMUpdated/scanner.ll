@@ -60,6 +60,7 @@ blank   [ \t]
 "for"    return yy::parser::make_FOR       (loc);
 "return" return yy::parser::make_RETURN    (loc);
 "if"     return yy::parser::make_IF        (loc);
+"|>"     return yy::parser::make_PIPE      (loc);
 "and"    return yy::parser::make_AND       (loc);
 "or"     return yy::parser::make_OR        (loc);
 "not"    return yy::parser::make_NOT       (loc);

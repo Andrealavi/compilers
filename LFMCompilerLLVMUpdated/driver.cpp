@@ -1,7 +1,9 @@
+#include <atomic>
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <fstream>
+#include <vector>
 #include "driver.hpp"
 #include "parser.hpp"
 
@@ -354,6 +356,10 @@ lexval CallExprAST::getLexVal() const {
     return lval;
 };
 
+void CallExprAST::addArg(ExprAST* arg) {
+    Args.insert(Args.begin(), arg);
+};
+
 void CallExprAST::visit() {
     *drv.outputTarget << drv.opening << Callee;
 
@@ -400,6 +406,33 @@ Value *CallExprAST::codegen(driver& drv) {
     }
 
     return builder->CreateCall(CalleeF, ArgsV, "callfun");
+};
+
+/// PipExprAST
+PipExprAST::PipExprAST(std::vector<ExprAST*> Calls) : Calls(Calls) {};
+
+void PipExprAST::visit() {
+    *drv.outputTarget << "[pipe ";
+
+    for (ExprAST* call : Calls) {
+        call->visit();
+    }
+
+    *drv.outputTarget << "]";
+};
+
+Value* PipExprAST::codegen(driver& drv) {
+    for (std::vector<ExprAST*>::iterator it = std::next(Calls.begin()); it != Calls.end() ; it++) {
+        CallExprAST* call = dynamic_cast<CallExprAST*>(*it);
+
+        if (!call) {
+            return LogErrorV("Pipeline operator requires function calls");
+        }
+
+        call->addArg(*(it - 1));
+    }
+
+    return Calls.back()->codegen(drv);
 };
 
 /// IfExprAST

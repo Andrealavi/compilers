@@ -63,6 +63,7 @@ YY_DECL;
   FOR        "for"
   RETURN     "return"
   IF         "if"
+  PIPE       "|>"
   AND        "and"
   OR         "or"
   NOT        "not"
@@ -96,6 +97,8 @@ YY_DECL;
 %type <ExprAST*> forexpr
 %type <ExprAST*> retexpr
 %type <std::vector<ExprAST*>> exprs
+%type <ExprAST*> callexpr
+%type <std::vector<ExprAST*>> pipexpr
 
 %%
 
@@ -145,9 +148,9 @@ expr:
 | "-" expr %prec UMINUS  { $$ = new UnaryExprAST("-",$2); }
 | "(" expr ")"           { $$ = $2; }
 | "id"                   { $$ = new IdeExprAST($1); }
-| "id" "(" arglist ")"   { $$ = new CallExprAST($1,$3); }
 | "number"               { $$ = new NumberExprAST($1); }
 | condexpr               { $$ = $1; }
+| pipexpr                { $$ = new PipExprAST($1); }
 | forexpr                { $$ = $1; }
 | letexpr                { $$ = $1; };
 
@@ -168,7 +171,14 @@ args:
 | expr "," args          { $3.insert($3.begin(),$1); $$ = $3; };
 
 condexpr:
-  "if" pairs "end"        { $$ = new IfExprAST($2); };
+  "if" pairs "end"       { $$ = new IfExprAST($2); };
+
+pipexpr:
+  callexpr "|>" pipexpr  { $3.insert($3.begin(), $1); $$ = $3; }
+| callexpr               { std::vector<ExprAST*> V = {$1}; $$ = V; };
+
+callexpr:
+  "id" "(" arglist ")"   { $$ = new CallExprAST($1, $3); };
 
 forexpr:
   "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
