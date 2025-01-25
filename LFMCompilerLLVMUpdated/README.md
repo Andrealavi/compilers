@@ -87,5 +87,10 @@ For the stable version of this compiler, please visit the main repository:
   - Updated `scanner.yy` grammar rules in order to allow for assignments in reductions
   - Added a new AST node (`AssignmentExprAST`) for representing assignments
   - Added a new example (`./code_examples/example_7.lfm`) to test assignments
+- Added pipeline operator for composite functions: (Commit: [6af90ba](https://github.com/Andrealavi/compilers/commit/6af90ba4af48462dbcf7f909e910e65b3efa86a8))
+  - Is now possible to concatenate functions using the operator `|>` (e.g. `f() |> g()`)
+  - By using the pipeline operator the output of a function is passed as an argument to the following function
+  - Added a new example (`./code_examples/example_8.lfm`) to test it
+  - Added a new AST node (`PipExprAST`) that has a vector of `CallExprAST*`as its principal attribute
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.
