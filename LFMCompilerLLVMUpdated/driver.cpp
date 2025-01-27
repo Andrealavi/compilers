@@ -886,6 +886,7 @@ void ForExprAST::visit() {
 
     *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
     binding.second->visit();
+    *drv.outputTarget << "]";
     condExpr->visit();
     endExpr->visit();
 
