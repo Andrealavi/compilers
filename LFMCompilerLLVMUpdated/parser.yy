@@ -89,7 +89,7 @@ YY_DECL;
 
 %type <std::vector<ExprAST*>> exprs
 %type <std::vector<ExprAST*>> exprs_list
-%type <ExprAST*> expr_or_binding
+%type <ExprAST*> expr_or_other
 
 %type <ExprAST*> expr
 %type <ExprAST*> boolexpr
@@ -150,10 +150,10 @@ exprs:
 |   %empty               { std::vector<ExprAST*> V = {}; $$ = V; };
 
 exprs_list:
-    expr_or_binding                     { $$ = std::vector<ExprAST*>{$1}; }
-|   expr_or_binding ";" exprs_list      { $3.insert($3.begin(), $1); $$ = $3; };
+    expr_or_other                     { $$ = std::vector<ExprAST*>{$1}; }
+|   expr_or_other ";" exprs_list      { $3.insert($3.begin(), $1); $$ = $3; };
 
-expr_or_binding:
+expr_or_other:
     expr                                { $$ = $1; }
 |   binding                             { $$ = new AssignmentExprAST($1);; }
 |   retexpr                             { $$ = $1; };
