@@ -96,7 +96,7 @@ For the stable version of this compiler, please visit the main repository:
   - Now if and let can have multiple expressions within their blocks
   - If expressions blocks need to be enclosed in `{}`
   - Added a new example (`./code_examples/example_9.lfm`) to test it
-- Added break instruction and solved a bug in if codegen method
+- Added break instruction and solved a bug in if codegen method: (Commit: [25431c](https://github.com/Andrealavi/compilers/commit/25431ca898458d396bde2ddddbeb787ba239fe84))
   - It is now possible to the break instruction to stop for loop iterations
   - Added a new AST node (`BreakExprAST`)
   - Added a new example to test it
