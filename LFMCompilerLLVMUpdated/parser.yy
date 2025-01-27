@@ -18,6 +18,7 @@
   class IfExprAST;
   class LetExprAST;
   class DefAST;
+  class ForExprAST;
 
   // Tell Flex the lexer's prototype ...
 # define YY_DECL \
@@ -63,6 +64,7 @@ YY_DECL;
   DEF        "function"
   GLOBAL     "global"
   FOR        "for"
+  BREAK      "break"
   RETURN     "return"
   IF         "if"
   PIPE       "|>"
@@ -169,6 +171,7 @@ expr:
 |   "(" expr ")"           { $$ = $2; }
 |   "id"                   { $$ = new IdeExprAST($1); }
 |   "number"               { $$ = new NumberExprAST($1); }
+|   "break"                { $$ = new BreakExprAST(); }
 |   condexpr               { $$ = $1; }
 |   pipexpr                { $$ = new PipExprAST($1); }
 |   forexpr                { $$ = $1; }

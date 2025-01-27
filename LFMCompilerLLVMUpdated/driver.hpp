@@ -9,6 +9,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
@@ -39,7 +40,9 @@ class driver {
     	std::map<std::string, AllocaInst*> NamedValues;
     								// Associative table to implement scope mechanisms and semantic analysis
                                     // Values are added when generating a function or a letexpr binding
-    	std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
+
+        std::vector<ForExprAST*> loopStack = {};
+        std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
     	std::string file;            // Source file
     	std::ostream* outputTarget;  // Output stream for ASTs in Latex
@@ -278,6 +281,14 @@ class ForExprAST : public ExprAST {
         ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body);
         Value *codegen(driver& drv) override;
         void visit() override;
+};
+
+/// BreakExprAST - Class that represents a break instruction
+class BreakExprAST : public ExprAST {
+    public:
+        BreakExprAST();
+        void visit() override;
+        Value *codegen(driver& drv) override;
 };
 
 #endif // ! DRIVER_HH

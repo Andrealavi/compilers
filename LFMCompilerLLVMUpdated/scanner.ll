@@ -60,6 +60,7 @@ blank   [ \t]
 "function" return yy::parser::make_DEF     (loc);
 "global" return yy::parser::make_GLOBAL    (loc);
 "for"    return yy::parser::make_FOR       (loc);
+"break"  return yy::parser::make_BREAK     (loc);
 "return" return yy::parser::make_RETURN    (loc);
 "if"     return yy::parser::make_IF        (loc);
 "|>"     return yy::parser::make_PIPE      (loc);

@@ -1,3 +1,4 @@
+#include <cfenv>
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
@@ -507,13 +508,13 @@ Value *IfExprAST::codegen(driver& drv) {
 
         Value *ExprV;
 
-        bool hasReturn = false;
+        bool hasReturnOrBreak = false;
 
         for (ExprAST* expr : IfThenSeq.at(j-1).second) {
             Value *exprVal = expr->codegen(drv);
 
-            if (dynamic_cast<RetExprAST*>(expr)) {
-                hasReturn = true;
+            if (dynamic_cast<RetExprAST*>(expr) || dynamic_cast<BreakExprAST*>(expr)) {
+                hasReturnOrBreak = true;
             }
 
             if (!exprVal) {
@@ -525,14 +526,14 @@ Value *IfExprAST::codegen(driver& drv) {
             }
         }
 
-        if (!hasReturn) {
+        if (!hasReturnOrBreak) {
             builder->CreateBr(ExitBB);
         }
 
         ExprBB = builder->GetInsertBlock(); //Because it might have
                                             //changed
 
-        if (!hasReturn) {
+        if (!hasReturnOrBreak) {
             phipairs.insert(phipairs.end(),{ExprV,ExprBB});
         }
 
@@ -555,17 +556,17 @@ Value *IfExprAST::codegen(driver& drv) {
 
     Value *ExprV;
 
-    bool hasReturn = false;
+    bool hasReturnOrBreak = false;
 
     for (ExprAST* expr : IfThenSeq.at(numpairs-1).second) {
         Value *exprVal = expr->codegen(drv);
 
-        if (!ExprV) {
+        if (!exprVal) {
             return nullptr;
         }
 
-        if (dynamic_cast<RetExprAST*>(expr)) {
-            hasReturn = true;
+        if (dynamic_cast<RetExprAST*>(expr) || dynamic_cast<BreakExprAST*>(expr)) {
+            hasReturnOrBreak = true;
         }
 
         if (expr == IfThenSeq.at(numpairs-1).second.back()) {
@@ -573,13 +574,13 @@ Value *IfExprAST::codegen(driver& drv) {
         }
     }
 
-    if (!hasReturn) {
+    if (!hasReturnOrBreak) {
         builder->CreateBr(ExitBB);
     }
 
     ExprBB = builder->GetInsertBlock();
 
-    if (!hasReturn) {
+    if (!hasReturnOrBreak) {
         phipairs.insert(phipairs.end(),{ExprV,ExprBB});
     }
 
@@ -900,6 +901,8 @@ void ForExprAST::visit() {
 Value* ForExprAST::codegen(driver& drv) {
     Function *function = builder->GetInsertBlock()->getParent();
 
+    drv.loopStack.push_back(this);
+
     // In order to implement the for in the IR four BB are created:
     // conditionBlock: checks the for condition and operate the related branching
     // loopBlock: executes the loop instructions
@@ -979,5 +982,25 @@ Value* ForExprAST::codegen(driver& drv) {
         drv.NamedValues[ide] = allocaTmp.second;
     }
 
+    drv.loopStack.pop_back();
+
     return retVal;
+};
+
+/// BreakExprAST
+BreakExprAST::BreakExprAST() {};
+
+void BreakExprAST::visit() {
+    *drv.outputTarget << "[break]";
+};
+
+Value* BreakExprAST::codegen(driver& drv) {
+    if (drv.loopStack.empty()) {
+        LogErrorV("Break instruction can be used only within for loops");
+        return nullptr;
+    }
+
+    BasicBlock* exitBlock = cast<BasicBlock>(builder->GetInsertBlock()->getParent()->getValueSymbolTable()->lookup("exit"));
+
+    return builder->CreateBr(exitBlock);
 };
