@@ -1,0 +1,16 @@
+function main()
+    z = 0;
+
+    if  z > 5 { z = z * 5; z = z + 2 }
+        z < 1 { return 50 }
+        true { return 30 }
+    end;
+
+    let x = 2, y = 3 in
+        z = x * y;
+
+        return z + 2
+    end;
+
+    return z
+end

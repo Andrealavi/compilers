@@ -92,5 +92,9 @@ For the stable version of this compiler, please visit the main repository:
   - By using the pipeline operator the output of a function is passed as an argument to the following function
   - Added a new example (`./code_examples/example_8.lfm`) to test it
   - Added a new AST node (`PipExprAST`) that has a vector of `CallExprAST*`as its principal attribute
+- Changed if and let syntax:
+  - Now if and let can have multiple expressions within their blocks
+  - If expressions blocks need to be enclosed in `{}`
+  - Added a new example (`./code_examples/example_9.lfm`) to test it
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

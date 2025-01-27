@@ -433,7 +433,7 @@ Value* PipExprAST::codegen(driver& drv) {
 };
 
 /// IfExprAST
-IfExprAST::IfExprAST(std::vector<std::pair<ExprAST*, ExprAST*>> IfThenSeq):
+IfExprAST::IfExprAST(std::vector<std::pair<ExprAST*, std::vector<ExprAST*>>> IfThenSeq):
     IfThenSeq(std::move(IfThenSeq)) {};
 
 void IfExprAST::visit() {
@@ -442,7 +442,11 @@ void IfExprAST::visit() {
     for (unsigned i=0, e=IfThenSeq.size(); i<e; i++) {
         *drv.outputTarget << "[alt ";
         IfThenSeq[i].first->visit();
-        IfThenSeq[i].second->visit();
+
+        for (ExprAST* expr: IfThenSeq[i].second) {
+            expr->visit();
+        }
+
         *drv.outputTarget << "]";
     }
 
@@ -501,18 +505,36 @@ Value *IfExprAST::codegen(driver& drv) {
         function->insert(function->end(), ExprBB);
         builder->SetInsertPoint(ExprBB);
 
-        Value *ExprV = IfThenSeq.at(j-1).second->codegen(drv);
+        Value *ExprV;
 
-        if (!ExprV) {
-            return nullptr;
+        bool hasReturn = false;
+
+        for (ExprAST* expr : IfThenSeq.at(j-1).second) {
+            Value *exprVal = expr->codegen(drv);
+
+            if (dynamic_cast<RetExprAST*>(expr)) {
+                hasReturn = true;
+            }
+
+            if (!exprVal) {
+                return nullptr;
+            }
+
+            if (expr == IfThenSeq.at(j-1).second.back()) {
+                ExprV = exprVal;
+            }
         }
 
-        builder->CreateBr(ExitBB);
+        if (!hasReturn) {
+            builder->CreateBr(ExitBB);
+        }
 
         ExprBB = builder->GetInsertBlock(); //Because it might have
                                             //changed
 
-        phipairs.insert(phipairs.end(),{ExprV,ExprBB});
+        if (!hasReturn) {
+            phipairs.insert(phipairs.end(),{ExprV,ExprBB});
+        }
 
         function->insert(function->end(), CondBB);
         builder->SetInsertPoint(CondBB);
@@ -531,24 +553,45 @@ Value *IfExprAST::codegen(driver& drv) {
     function->insert(function->end(), ExprBB);
     builder->SetInsertPoint(ExprBB);
 
-    Value *ExprV = IfThenSeq.at(numpairs-1).second->codegen(drv);
+    Value *ExprV;
 
-    if (!ExprV) {
-        return nullptr;
+    bool hasReturn = false;
+
+    for (ExprAST* expr : IfThenSeq.at(numpairs-1).second) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (!ExprV) {
+            return nullptr;
+        }
+
+        if (dynamic_cast<RetExprAST*>(expr)) {
+            hasReturn = true;
+        }
+
+        if (expr == IfThenSeq.at(numpairs-1).second.back()) {
+            ExprV = exprVal;
+        }
     }
 
-    builder->CreateBr(ExitBB);
+    if (!hasReturn) {
+        builder->CreateBr(ExitBB);
+    }
+
     ExprBB = builder->GetInsertBlock();
-    phipairs.insert(phipairs.end(),{ExprV,ExprBB});
+
+    if (!hasReturn) {
+        phipairs.insert(phipairs.end(),{ExprV,ExprBB});
+    }
+
     function->insert(function->end(),ExitBB);
     builder->SetInsertPoint(ExitBB);
 
     PHINode *PN = builder->CreatePHI(Type::getInt32Ty(*context),
                             numpairs, "condval");
 
-    for (int j=0; j<numpairs; j++) {
-        Value* val = phipairs.at(j).first;
-        BasicBlock* incoming = phipairs.at(j).second;
+    for (std::vector<std::pair<Value*,BasicBlock*>>::iterator it = phipairs.begin(); it != phipairs.end(); it++) {
+        Value* val = (*it).first;
+        BasicBlock* incoming = (*it).second;
         PN->addIncoming(val,incoming);
     }
 
@@ -559,7 +602,7 @@ Value *IfExprAST::codegen(driver& drv) {
 };
 
 /// LetExprAST
-LetExprAST::LetExprAST(std::vector<std::pair<std::string, ExprAST*>> Bindings, ExprAST* Body):
+LetExprAST::LetExprAST(std::vector<std::pair<std::string, ExprAST*>> Bindings, std::vector<ExprAST*> Body):
     Bindings(std::move(Bindings)), Body(Body) {};
 
 void LetExprAST::visit() {
@@ -572,7 +615,11 @@ void LetExprAST::visit() {
     };
 
     *drv.outputTarget << "][in ";
-    Body->visit();
+
+    for (ExprAST* expr: Body) {
+        expr->visit();
+    }
+
     *drv.outputTarget << "]]";
 };
 
@@ -603,7 +650,15 @@ Value *LetExprAST::codegen(driver& drv) {
         drv.NamedValues[ide] = BInst;
     }
 
-    Value *letVal = Body->codegen(drv);
+    Value *letVal;
+
+    for (ExprAST* expr : Body) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (expr == Body.back()) {
+            letVal = exprVal;
+        }
+    }
 
     for (int j=0, e=Bindings.size(); j<e; j++) {
         std::string ide = Bindings.at(j).first;

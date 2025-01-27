@@ -44,6 +44,8 @@ blank   [ \t]
 "%"      return yy::parser::make_MOD       (loc);
 "("      return yy::parser::make_LPAREN    (loc);
 ")"      return yy::parser::make_RPAREN    (loc);
+"{"      return yy::parser::make_LCPAREN    (loc);
+"}"      return yy::parser::make_RCPAREN    (loc);
 "|"      return yy::parser::make_ALT       (loc);
 "<="     return yy::parser::make_LE        (loc);
 "<>"     return yy::parser::make_NEQ       (loc);

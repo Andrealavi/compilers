@@ -200,9 +200,9 @@ class PipExprAST : public ExprAST {
 /// IfExprAST - Class that represents the "conditional" construct
 class IfExprAST : public ExprAST {
     private:
-    	std::vector<std::pair<ExprAST*, ExprAST*>> IfThenSeq;
+    	std::vector<std::pair<ExprAST*, std::vector<ExprAST*>>> IfThenSeq;
     public:
-    	IfExprAST(std::vector<std::pair<ExprAST*, ExprAST*>> IfThenSeq);
+    	IfExprAST(std::vector<std::pair<ExprAST*, std::vector<ExprAST*>>> IfThenSeq);
     	void visit() override;
     	Value *codegen(driver& drv) override;
 };
@@ -212,9 +212,9 @@ class IfExprAST : public ExprAST {
 class LetExprAST : public ExprAST {
     private:
     	std::vector<std::pair<std::string, ExprAST*>> Bindings;
-    	ExprAST* Body;
+    	std::vector<ExprAST*> Body;
     public:
-    	LetExprAST(std::vector<std::pair<std::string, ExprAST*>> Bindings, ExprAST* Body);
+    	LetExprAST(std::vector<std::pair<std::string, ExprAST*>> Bindings, std::vector<ExprAST*> Body);
     	void visit() override;
     	Value *codegen(driver& drv) override;
 };
