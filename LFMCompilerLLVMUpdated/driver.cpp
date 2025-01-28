@@ -1,6 +1,7 @@
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
+#include <llvm-18/llvm/IR/Instructions.h>
 #include "driver.hpp"
 #include "parser.hpp"
 
@@ -601,6 +602,58 @@ Value *IfExprAST::codegen(driver& drv) {
     return PN;
 };
 
+/// TernaryExprAST
+TernaryExprAST::TernaryExprAST(ExprAST* boolexpr, ExprAST* ifTrueExpr, ExprAST* ifFalseExpr)
+    : boolexpr(boolexpr), ifTrueExpr(ifTrueExpr), ifFalseExpr(ifFalseExpr) {};
+
+void TernaryExprAST::visit() {
+    *drv.outputTarget << "[? ";
+
+    *drv.outputTarget << "[alt ";
+
+    boolexpr->visit();
+
+    ifTrueExpr->visit();
+    ifFalseExpr->visit();
+
+    *drv.outputTarget << "]]";
+};
+
+Value* TernaryExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
+    BasicBlock *trueBlock = BasicBlock::Create(*context, "true", function);
+    BasicBlock *falseBlock = BasicBlock::Create(*context, "false", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exitblock", function);
+
+    builder->CreateBr(conditionBlock);
+
+    builder->SetInsertPoint(conditionBlock);
+    Value* conditionVal = boolexpr->codegen(drv);
+
+    builder->CreateCondBr(conditionVal, trueBlock, falseBlock);
+
+    builder->SetInsertPoint(trueBlock);
+    Value *trueVal = ifTrueExpr->codegen(drv);
+
+    builder->CreateBr(exitBlock);
+
+    builder->SetInsertPoint(falseBlock);
+    Value *falseVal = ifFalseExpr->codegen(drv);
+
+    builder->CreateBr(exitBlock);
+
+    builder->SetInsertPoint(exitBlock);
+
+    PHINode *PN = builder->CreatePHI(Type::getInt32Ty(*context), 2, "condval");
+
+    PN->addIncoming(trueVal, trueBlock);
+    PN->addIncoming(falseVal, falseBlock);
+
+    return PN;
+};
+
 /// LetExprAST
 LetExprAST::LetExprAST(std::vector<std::pair<std::string, ExprAST*>> Bindings, std::vector<ExprAST*> Body):
     Bindings(std::move(Bindings)), Body(Body) {};
@@ -738,7 +791,7 @@ const std::vector<std::string>& PrototypeAST::getParams() const {
 
 void PrototypeAST::visit() {
     if (External) *drv.outputTarget << "[extern ";
-    if (Forward) *drv.outputTarget << "[forward "
+    if (Forward) *drv.outputTarget << "[forward ";
     *drv.outputTarget << drv.opening << Name << drv.closing << "[params ";
 
     for (auto it=Params.begin(); it!=Params.end(); ++it) {

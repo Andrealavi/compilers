@@ -54,6 +54,7 @@ blank   [ \t]
 ">="     return yy::parser::make_GE        (loc);
 ">"      return yy::parser::make_GT        (loc);
 "="      return yy::parser::make_BIND      (loc);
+"?"      return yy::parser::make_TERNARY   (loc);
 "true"   return yy::parser::make_TRUE      (loc);
 "false"  return yy::parser::make_FALSE     (loc);
 "external" return yy::parser::make_EXTERN  (loc);

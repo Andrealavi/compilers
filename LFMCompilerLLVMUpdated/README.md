@@ -105,5 +105,10 @@ For the stable version of this compiler, please visit the main repository:
   - To do so it was added `forward` instruction. It has to be put before the function prototype
   - Added a new example (`./code_examples/example_11.lfm`) to test forward declarations
   - To allow for forward declarations, only small changes to `PrototypeAST` and `FunctionAST`classes were made
+- Implemented ternary operator (Short Hand if-else):
+  - Added a new AST node (`TernaryExprAST`)
+  - Changed `parser.yy` and `scanner.ll` in order to properly manage the new construct
+  - The syntax copies the C++ ternary operator (`condition ? trueExpr : falseExpr`)
+  - Added a new example (`./code_examples/example_12.lfm`) to test it
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

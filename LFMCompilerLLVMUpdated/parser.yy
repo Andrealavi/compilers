@@ -58,6 +58,7 @@ YY_DECL;
   GE         ">="
   GT         ">"
   BIND       "="
+  TERNARY    "?"
   TRUE       "true"
   FALSE      "false"
   EXTERN     "external"
@@ -98,6 +99,7 @@ YY_DECL;
 %type <ExprAST*> expr
 %type <ExprAST*> boolexpr
 %type <IfExprAST*> condexpr
+%type <ExprAST*> ternaryexpr
 %type <LetExprAST*> letexpr
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
@@ -144,7 +146,7 @@ params:
     %empty                { std::vector<std::string> params; $$ = params; }
 |   "id" params           { $2.insert($2.begin(),$1); $$ = $2;};
 
-%nonassoc "<" "==" "<>" "<=" ">" ">=";
+%nonassoc "<" "==" "<>" "<=" ">" ">=" "?" ":";
 %left "+" "-";
 %left "*" "/" "%";
 %right "^";
@@ -181,6 +183,7 @@ expr:
 |   condexpr               { $$ = $1; }
 |   pipexpr                { $$ = new PipExprAST($1); }
 |   forexpr                { $$ = $1; }
+|   ternaryexpr            { $$ = $1; }
 |   letexpr                { $$ = $1; };
 
 
@@ -193,7 +196,10 @@ args:
 |   expr "," args          { $3.insert($3.begin(),$1); $$ = $3; };
 
 condexpr:
-    "if" pairs "end"       { $$ = new IfExprAST($2); };
+    "if" pairs "end"            { $$ = new IfExprAST($2); }
+
+ternaryexpr:
+   boolexpr "?" expr ":" expr  { $$ = new TernaryExprAST($1, $3, $5); };
 
 pipexpr:
     callexpr "|>" pipexpr  { $3.insert($3.begin(), $1); $$ = $3; }

@@ -211,6 +211,19 @@ class IfExprAST : public ExprAST {
     	Value *codegen(driver& drv) override;
 };
 
+/// TernaryExprAST - Class that represents ternary operator construct
+class TernaryExprAST : public ExprAST {
+    private:
+        ExprAST* boolexpr;
+        ExprAST* ifTrueExpr;
+        ExprAST* ifFalseExpr;
+
+    public:
+        TernaryExprAST(ExprAST* boolexpr, ExprAST* ifTrueExpr, ExprAST* ifFalseExpr);
+        void visit() override;
+        Value *codegen(driver& drv) override;
+};
+
 /// LetExprAST - Class for representing expressions with local
 /// environment definition
 class LetExprAST : public ExprAST {
