@@ -96,11 +96,11 @@ For the stable version of this compiler, please visit the main repository:
   - Now if and let can have multiple expressions within their blocks
   - If expressions blocks need to be enclosed in `{}`
   - Added a new example (`./code_examples/example_9.lfm`) to test it
-- Added break instruction and solved a bug in if codegen method: (Commit: [25431c](https://github.com/Andrealavi/compilers/commit/25431ca898458d396bde2ddddbeb787ba239fe84))
+- Added break instruction and solved a bug in if codegen method: (Commit: [25431ca](https://github.com/Andrealavi/compilers/commit/25431ca898458d396bde2ddddbeb787ba239fe84))
   - It is now possible to the break instruction to stop for loop iterations
   - Added a new AST node (`BreakExprAST`)
   - Added a new example to test it (`./code_examples/example_10.lfm`)
-- Added function forward declaration
+- Added function forward declaration: (Commit: [7d2c565](https://github.com/Andrealavi/compilers/commit/7d2c565e83fb3fa0cf25c8f4b48db9e732152eae))
   - It is now possible to first declare functions and define them later
   - To do so it was added `forward` instruction. It has to be put before the function prototype
   - Added a new example (`./code_examples/example_11.lfm`) to test forward declarations
