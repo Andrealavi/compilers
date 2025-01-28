@@ -57,6 +57,7 @@ blank   [ \t]
 "true"   return yy::parser::make_TRUE      (loc);
 "false"  return yy::parser::make_FALSE     (loc);
 "external" return yy::parser::make_EXTERN  (loc);
+"forward"  return yy::parser::make_FORWARD (loc);
 "function" return yy::parser::make_DEF     (loc);
 "global" return yy::parser::make_GLOBAL    (loc);
 "for"    return yy::parser::make_FOR       (loc);

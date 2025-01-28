@@ -61,6 +61,7 @@ YY_DECL;
   TRUE       "true"
   FALSE      "false"
   EXTERN     "external"
+  FORWARD    "forward"
   DEF        "function"
   GLOBAL     "global"
   FOR        "for"
@@ -83,6 +84,7 @@ YY_DECL;
 %type <DefAST*> def
 %type <FunctionAST*> funcdef
 %type <PrototypeAST*> extdef
+%type <PrototypeAST*> forwarddef
 %type <PrototypeAST*> prototype
 %type <std::vector<std::string>> params
 %type <std::vector<ExprAST*>> arglist
@@ -122,11 +124,15 @@ deflist:
 
 def:
     extdef                { $$ = $1; }
+|   forwarddef            { $$ = $1; }
 |   funcdef               { $$ = $1; }
 |   globdef               { $$ = $1; };
 
 extdef:
     "external" prototype  { $2->setext(); $$ = $2; };
+
+forwarddef:
+    "forward"  prototype  { $2->setfor(); $$ = $2; };
 
 funcdef:
     "function" prototype exprs "end"  { $$ = new FunctionAST($2,$3); };

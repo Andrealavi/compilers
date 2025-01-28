@@ -1,4 +1,3 @@
-#include <cfenv>
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
@@ -711,13 +710,27 @@ Value *GlobalDefAST::codegen(driver& drv) {
 
 /// PrototypeAST
 PrototypeAST::PrototypeAST(std::string Name, std::vector<std::string> Params):
-                          Name(Name), Params(std::move(Params)) {External=false;};
+                          Name(Name), Params(std::move(Params)) { External=false; Forward=false; };
 
 lexval PrototypeAST::getLexVal() const {
    	lexval lval = Name;
    	return lval;
 };
+
 void PrototypeAST::setext() { External = true; };
+
+void PrototypeAST::setfor() {
+    Forward = true;
+
+    drv.forwardDeclarations.push_back(Name);
+};
+
+bool PrototypeAST::checkForward() {
+    return std::find(drv.forwardDeclarations.begin(), drv.forwardDeclarations.end(), Name)
+        !=  drv.forwardDeclarations.end()
+        ?   true
+        :   false;
+};
 
 const std::vector<std::string>& PrototypeAST::getParams() const {
     return Params;
@@ -725,6 +738,7 @@ const std::vector<std::string>& PrototypeAST::getParams() const {
 
 void PrototypeAST::visit() {
     if (External) *drv.outputTarget << "[extern ";
+    if (Forward) *drv.outputTarget << "[forward "
     *drv.outputTarget << drv.opening << Name << drv.closing << "[params ";
 
     for (auto it=Params.begin(); it!=Params.end(); ++it) {
@@ -798,7 +812,9 @@ Function *FunctionAST::codegen(driver& drv) {
     std::string FunName = std::get<std::string>(Proto->getLexVal());
     Function *function = module->getFunction(FunName);
 
-    if (function) {
+    bool isForward = Proto->checkForward();
+
+    if (!isForward && function) {
         // If the function is already defined, an error message is given and we exit
         LogErrorV("Function " + FunName + " already defined");
         return nullptr;
@@ -807,7 +823,14 @@ Function *FunctionAST::codegen(driver& drv) {
     // The function is not defined.
     // First we generate the prototype code, which will be emitted after
     // generating the rest as well.
-    function = Proto->codegen(drv);
+    if (!isForward) {
+        function = Proto->codegen(drv);
+    } else {
+        std::vector<std::string>::iterator it = std::find(drv.forwardDeclarations.begin(), drv.forwardDeclarations.end(), FunName);
+
+        drv.forwardDeclarations.erase(it);
+    }
+
 
     // If for some reason the prototype generation fails
     // we give an error message and "bounce" the failure back to the caller

@@ -1,0 +1,19 @@
+forward f(x)
+forward h(x)
+forward g(x)
+
+function main()
+    return h(3)
+end
+
+function f(x)
+    return x
+end
+
+function g(x)
+    return x
+end
+
+function h(x)
+    return x
+end

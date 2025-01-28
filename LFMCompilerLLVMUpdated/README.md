@@ -99,6 +99,11 @@ For the stable version of this compiler, please visit the main repository:
 - Added break instruction and solved a bug in if codegen method: (Commit: [25431c](https://github.com/Andrealavi/compilers/commit/25431ca898458d396bde2ddddbeb787ba239fe84))
   - It is now possible to the break instruction to stop for loop iterations
   - Added a new AST node (`BreakExprAST`)
-  - Added a new example to test it
+  - Added a new example to test it (`./code_examples/example_10.lfm`)
+- Added function forward declaration
+  - It is now possible to first declare functions and define them later
+  - To do so it was added `forward` instruction. It has to be put before the function prototype
+  - Added a new example (`./code_examples/example_11.lfm`) to test forward declarations
+  - To allow for forward declarations, only small changes to `PrototypeAST` and `FunctionAST`classes were made
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

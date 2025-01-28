@@ -20,6 +20,7 @@ using namespace llvm;
 #include <string>
 #include <map>
 #include <variant>
+#include <algorithm>
 #include <vector>
 #include <iterator>
 
@@ -40,7 +41,7 @@ class driver {
     	std::map<std::string, AllocaInst*> NamedValues;
     								// Associative table to implement scope mechanisms and semantic analysis
                                     // Values are added when generating a function or a letexpr binding
-
+        std::vector<std::string> forwardDeclarations = {};
         std::vector<ForExprAST*> loopStack = {};
         std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
@@ -243,12 +244,15 @@ class PrototypeAST : public DefAST {
     private:
     	std::string Name;
     	bool External;
+        bool Forward;
     	std::vector<std::string> Params;
 
     public:
     	PrototypeAST(std::string Name, std::vector<std::string> Params);
     	lexval getLexVal() const;
     	void setext();
+        void setfor();
+        bool checkForward();
     	const std::vector<std::string> &getParams() const;
     	void visit() override;
     	int paramssize();
