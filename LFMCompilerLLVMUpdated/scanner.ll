@@ -12,8 +12,8 @@
 
 id      [a-zA-Z_][a-zA-Z_0-9]*
 num     0|[1-9][0-9]*
-inline_comment \/\/[ a-zA-Z0-9'*.]*
-multiline_comment \/\*[\t\na-zA-Z0-9 .*]*\*\/
+inline_comment \/\/[ a-zA-Z0-9'*.><{}\[\]\-\_\/!$%&()\^\?]*
+multiline_comment \/\*[ a-zA-Z0-9'*.><{}\[\]\-\_\/!$%&()\^\?]*\*\/
 blank   [ \t]
 
 %{
