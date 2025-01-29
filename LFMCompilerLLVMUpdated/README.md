@@ -123,5 +123,10 @@ For the stable version of this compiler, please visit the main repository:
   - Created a new AST node (`ArrayExprAST`) to manage Array creation
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added a new example to test arrays (`./code_examples/example_14.lfm`)
+- Implemented array comprehension:
+  - Now it is possible to create arrays with the following syntax: `array a = {x for x in range(10)}`
+  - Created a new AST node (`ComprExprAST`) to manage array comprehension
+  - Changed `scanner.ll` and `parser.yy` accordingly
+  - Created a new example to test it (`./code_examples/example_16.lfm`)
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

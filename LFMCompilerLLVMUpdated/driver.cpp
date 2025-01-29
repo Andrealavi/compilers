@@ -1,8 +1,10 @@
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
+#include <llvm-18/llvm/ADT/Bitfields.h>
 #include <llvm-18/llvm/IR/Instruction.h>
 #include <llvm-18/llvm/IR/Instructions.h>
+#include <llvm-18/llvm/IR/Value.h>
 #include <string>
 #include <strings.h>
 #include <vector>
@@ -111,6 +113,11 @@ Constant *NumberExprAST::codegen(driver& drv) {
 /// ArrayExprAST
 ArrayExprAST::ArrayExprAST(std::string name, std::vector<ExprAST*> Values) : name(name), Values(Values) { numElements = Values.size(); };
 
+ArrayExprAST::ArrayExprAST(std::string name, ExprAST* comprehensionExpr) : name(name) {
+    isComprehension = true;
+    Values = {comprehensionExpr};
+};
+
 void ArrayExprAST::visit() {
     *drv.outputTarget << "[" << name;
 
@@ -122,9 +129,18 @@ void ArrayExprAST::visit() {
 };
 
 Value *ArrayExprAST::codegen(driver& drv) {
-    ArrayType *arrayType = ArrayType::get(Type::getInt32Ty(*context), numElements);
+    if (isComprehension) {
+        ExprAST* expr = Values[0];
+        ComprExprAST* comprehensionExpr = dynamic_cast<ComprExprAST*>(expr);
 
+        comprehensionExpr->setComprehensionName(name);
+
+        return comprehensionExpr->codegen(drv);
+    }
+
+    ArrayType *arrayType = ArrayType::get(Type::getInt32Ty(*context), numElements);
     AllocaInst *arrayInst;
+
     std::map<std::string, AllocaInst*>::iterator it;
 
     it = drv.NamedValues.find(name);
@@ -280,7 +296,7 @@ Value *AssignmentExprAST::codegen(driver& drv) {
     } else {
         Function *function = builder->GetInsertBlock()->getParent();
 
-        BInst = MakeAlloca(function, binding.first);
+        BInst = MakeAlloca(function, binding.first, BInst->getAllocatedType());
         drv.NamedValues[binding.first] = BInst;
     }
 
@@ -325,6 +341,10 @@ Value* RetExprAST::codegen(driver& drv) {
 /// BinaryExprAST
 BinaryExprAST::BinaryExprAST(std::string Op, ExprAST* LHS, ExprAST* RHS):
 	                         Op(Op), LHS(LHS), RHS(RHS) {};
+
+ExprAST *BinaryExprAST::getLHS() { return LHS; };
+
+ExprAST *BinaryExprAST::getRHS() { return RHS; };
 
 void BinaryExprAST::visit() {
     *drv.outputTarget << drv.opening << Op;
@@ -1094,7 +1114,6 @@ Function *FunctionAST::codegen(driver& drv) {
     return function;
 };
 
-/// ForExprAST
 ForExprAST::ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body)
     : binding(binding), condExpr(condExpr), endExpr(endExpr), Body(Body) {};
 
@@ -1203,6 +1222,142 @@ Value* ForExprAST::codegen(driver& drv) {
     drv.loopStack.pop_back();
 
     return retVal;
+};
+
+
+/// ComprExprAST
+ComprExprAST::ComprExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* expr)
+    : binding(binding), condExpr(condExpr), endExpr(endExpr), expr(expr) {};
+
+void ComprExprAST::setComprehensionName(std::string name) { comprehensionName = name; };
+
+void ComprExprAST::visit() {
+    *drv.outputTarget << "[comprehension [expressions";
+
+    *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
+    binding.second->visit();
+    *drv.outputTarget << "]";
+    condExpr->visit();
+    endExpr->visit();
+
+    *drv.outputTarget << "][in ";
+
+    expr->visit();
+
+    *drv.outputTarget << "]]";
+};
+
+Value* ComprExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    drv.loopStack.push_back(this);
+
+    // In order to implement the for in the IR four BB are created:
+    // conditionBlock: checks the for condition and operate the related branching
+    // loopBlock: executes the loop instructions
+    // updateBlock: updates the loop counter variable
+    // exitBlock: returns the value computed by the loopBlock
+    BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
+    BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
+    BasicBlock *updateBlock = BasicBlock::Create(*context, "update", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
+
+    // Entry BB
+    std::string ide = binding.first;
+    Value *counterValue = binding.second->codegen(drv);
+
+    if (!counterValue) {
+        return nullptr;
+    }
+
+    AllocaInst *counterInst = MakeAlloca(function, ide);
+    builder->CreateStore(counterValue, counterInst);
+
+    std::pair<std::string, AllocaInst*> allocaTmp;
+    std::map<std::string,AllocaInst*>::iterator it;
+
+    allocaTmp.first = ide;
+
+    // Checks if a variable with the same name given to the counter has already been declared
+    // If so, it is saved in a temporary register in order to use the symbol table
+    it = drv.NamedValues.find(ide);
+    if (it != drv.NamedValues.end()) {
+        allocaTmp.second = drv.NamedValues[ide];
+    }
+
+    drv.NamedValues[ide] = counterInst;
+
+    int numElements = std::get<int>(dynamic_cast<NumberExprAST*>((dynamic_cast<BinaryExprAST*>(condExpr))->getRHS())->getLexVal());
+
+    ArrayType *arrayType = ArrayType::get(Type::getInt32Ty(*context), numElements);
+    AllocaInst *arrayInst;
+
+    it = drv.NamedValues.find(comprehensionName);
+
+    if (it != drv.NamedValues.end()) {
+        arrayInst = drv.NamedValues[comprehensionName];
+    } else {
+        Function *function = builder->GetInsertBlock()->getParent();
+
+        arrayInst = MakeAlloca(function, comprehensionName, arrayType);
+        drv.NamedValues[comprehensionName] = arrayInst;
+    }
+
+    builder->CreateBr(conditionBlock);
+
+    // Condition BB
+    builder->SetInsertPoint(conditionBlock);
+
+    Value *condExprValue = condExpr->codegen(drv);
+
+    if (!condExprValue) {
+        return nullptr;
+    }
+
+    builder->CreateCondBr(condExprValue, loopBlock, exitBlock);
+
+    // Loop BB
+    builder->SetInsertPoint(loopBlock);
+
+    Value* index = builder->CreateLoad(counterInst->getAllocatedType(), counterInst, "index");
+
+    std::vector<Value*> indices = {
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+        index,
+    };
+
+    Value *elementPtr = builder->CreateInBoundsGEP(arrayType, arrayInst, indices, "elementPtr");
+
+    Value *exprVal = expr->codegen(drv);
+
+    builder->CreateStore(exprVal, elementPtr);
+
+
+    builder->CreateBr(updateBlock);
+
+    // Update BB
+    builder->SetInsertPoint(updateBlock);
+
+    Value *endExprValue = endExpr->codegen(drv);
+    builder->CreateStore(endExprValue, counterInst);
+
+    builder->CreateBr(conditionBlock);
+
+    // Exit BB
+    builder->SetInsertPoint(exitBlock);
+
+    if (it != drv.NamedValues.find(ide)) {
+        drv.NamedValues[ide] = allocaTmp.second;
+    }
+
+    drv.loopStack.pop_back();
+
+    indices = {
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+    };
+
+    return builder->CreateInBoundsGEP(arrayType, arrayInst, indices);
 };
 
 /// DoWhileExprAST

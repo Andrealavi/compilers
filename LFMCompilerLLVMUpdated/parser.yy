@@ -70,6 +70,7 @@ YY_DECL;
   GLOBAL     "global"
   CONST      "const"
   FOR        "for"
+  RANGE      "range"
   DO         "do"
   WHILE      "while"
   BREAK      "break"
@@ -110,6 +111,7 @@ YY_DECL;
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
 %type <ExprAST*> arraydef
+%type <ExprAST*> arraycomprehension
 %type <ExprAST*> assignment
 %type <ExprAST*> var_or_array
 %type <LoopExprAST*> loopexpr
@@ -228,8 +230,20 @@ callexpr:
     "id" "(" arglist ")"   { $$ = new CallExprAST($1, $3); };
 
 loopexpr:
-    "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
-|   "do" "{" exprs "}" "while" "(" boolexpr ")" "end"                 { $$ = new DoWhileExprAST($7, $3); };
+    "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"     { $$ = new ForExprAST($3, $5, $7, $9); }
+|   "do" "{" exprs "}" "while" "(" boolexpr ")" "end"           { $$ = new DoWhileExprAST($7, $3); }
+
+arraycomprehension:
+    "{" expr "for" "id" "in" "range" "(" "number" ")" "}"       {
+                                                                    ExprAST* numberExpr = new NumberExprAST(0);
+                                                                    std::pair<std::string, ExprAST*> C ($4, numberExpr);
+
+                                                                    ExprAST* counterExpr = new IdeExprAST($4);
+                                                                    BinaryExprAST* booleanExpression = new BinaryExprAST("<",counterExpr, new NumberExprAST($8));
+                                                                    BinaryExprAST* updateExpression = new BinaryExprAST("+", counterExpr, new NumberExprAST(1));
+
+                                                                    $$ = new ComprExprAST(C, booleanExpression, updateExpression, $2);
+                                                                };
 
 pairs:
     pair                   { std::vector<std::pair<ExprAST*, std::vector<ExprAST*>>> P = {$1}; $$ = P; }
@@ -275,7 +289,8 @@ binding:
     "id" "=" expr           { std::pair<std::string, ExprAST*> C ($1,$3); $$ = C; }
 
 arraydef:
-    "array" "id" "=" "{" args "}"   { $$ = new ArrayExprAST($2, $5); };
+    "array" "id" "=" "{" args "}"       { $$ = new ArrayExprAST($2, $5); };
+|   "array" "id" "=" arraycomprehension { $$ = new ArrayExprAST($2, $4); }
 
 %%
 

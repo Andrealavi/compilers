@@ -68,6 +68,7 @@ blank   [ \t]
 "do"     return yy::parser::make_DO        (loc);
 "while"  return yy::parser::make_WHILE     (loc);
 "for"    return yy::parser::make_FOR       (loc);
+"range"  return yy::parser::make_RANGE     (loc);
 "break"  return yy::parser::make_BREAK     (loc);
 "return" return yy::parser::make_RETURN    (loc);
 "if"     return yy::parser::make_IF        (loc);

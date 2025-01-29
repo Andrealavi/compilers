@@ -1,0 +1,5 @@
+function main()
+    array a = {i for i in range(10)};
+
+    return a[2]
+end

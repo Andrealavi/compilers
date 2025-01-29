@@ -108,9 +108,11 @@ class ArrayExprAST : public ExprAST {
         std::string name;
     	std::vector<ExprAST*> Values;
         int numElements;
+        bool isComprehension = false;
 
     public:
     	ArrayExprAST(std::string name, std::vector<ExprAST*> Values);
+        ArrayExprAST(std::string name, ExprAST* comprehensionValue);
     	void visit() override;
     	Value *codegen(driver& drv) override;
 };
@@ -177,6 +179,8 @@ class BinaryExprAST : public ExprAST {
 
     public:
     	BinaryExprAST(std::string Op, ExprAST* LHS, ExprAST* RHS);
+        ExprAST* getLHS();
+        ExprAST* getRHS();
     	void visit() override;
     	Value *codegen(driver& drv) override;
 };
@@ -326,6 +330,22 @@ class ForExprAST : public LoopExprAST {
     public:
         ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body);
         Value *codegen(driver& drv) override;
+        void visit() override;
+};
+
+/// ComprExprAST - Class that represents array comprehension construct
+class ComprExprAST : public LoopExprAST {
+    private:
+        std::pair<std::string, ExprAST*> binding;
+        ExprAST* condExpr;
+        ExprAST* endExpr;
+        std::string comprehensionName;
+        ExprAST* expr;
+
+    public:
+        ComprExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, ExprAST* expr);
+        Value *codegen(driver& drv) override;
+        void setComprehensionName(std::string name);
         void visit() override;
 };
 
