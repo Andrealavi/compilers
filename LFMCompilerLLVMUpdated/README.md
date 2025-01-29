@@ -122,8 +122,8 @@ For the stable version of this compiler, please visit the main repository:
 - Implemented integers arrays: (Commit:  [ec9cf36](https://github.com/Andrealavi/compilers/commit/ec9cf36d22cafd429c33a856d2988d5e3c8a7f17))
   - Created a new AST node (`ArrayExprAST`) to manage Array creation
   - Changed `scanner.ll` and `parser.yy` accordingly
-  - Added a new example to test arrays (`./code_examples/example_14.lfm`)
-- Implemented array comprehension:
+  - Added a new example to test arrays (`./code_examples/example_15.lfm`)
+- Implemented array comprehension: (Commit:  [16ddca2](https://github.com/Andrealavi/compilers/commit/16ddca24776192be5ae57e3f33b205eacde7c9dd))
   - Now it is possible to create arrays with the following syntax: `array a = {x for x in range(10)}`
   - Created a new AST node (`ComprExprAST`) to manage array comprehension
   - Changed `scanner.ll` and `parser.yy` accordingly
