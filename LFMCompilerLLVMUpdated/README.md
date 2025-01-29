@@ -114,8 +114,8 @@ For the stable version of this compiler, please visit the main repository:
   - Modified `driver` class in order to keep track of the constants
   - Added a vector of sets (`constantsScopes`) to manage scoping
   - Modified `FunctionAST`, `LetExprAST` and `AssignmentExprAST` to properly check and managing constants
-  - Added a new example to test constants and scoping
-- Implemented DoWhile loop:
+  - Added a new example to test constants and scoping (`./code_examples/example_13.lfm`)
+- Implemented DoWhile loop: (Commit: [0c7b124](https://github.com/Andrealavi/compilers/commit/0c7b1244b7cba87da4dd6839c9cb2f1bdb2d2aff))
   - Changed AST nodes structure by adding a `LoopExprAST` node from which for and while nodes inherit
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added a new example to test do while loop (`./code_examples/example_14.lfm`)
