@@ -1,0 +1,13 @@
+function f(x)
+    x = 3;
+
+    return x
+end
+
+function main()
+    const x = 4;
+
+    x = 3; // This instruction should throw an error
+
+    return x
+end

@@ -65,6 +65,7 @@ YY_DECL;
   FORWARD    "forward"
   DEF        "function"
   GLOBAL     "global"
+  CONST      "const"
   FOR        "for"
   BREAK      "break"
   RETURN     "return"
@@ -165,7 +166,8 @@ exprs_list:
 
 expr_or_other:
     expr                                { $$ = $1; }
-|   binding                             { $$ = new AssignmentExprAST($1);; }
+|   binding                             { $$ = new AssignmentExprAST($1); }
+|   "const" binding                     { $$ = new AssignmentExprAST($2, true); }
 |   retexpr                             { $$ = $1; };
 
 expr:
@@ -252,7 +254,7 @@ bindings:
 |   binding "," bindings    { $3.insert($3.begin(),$1); $$ = $3; };
 
 binding:
-    "id" "=" expr           { std::pair<std::string, ExprAST*> C ($1,$3); $$ = C; };
+    "id" "=" expr           { std::pair<std::string, ExprAST*> C ($1,$3); $$ = C; }
 
 %%
 

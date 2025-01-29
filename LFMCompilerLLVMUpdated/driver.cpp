@@ -1,7 +1,9 @@
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
+#include <llvm-18/llvm/IR/Instruction.h>
 #include <llvm-18/llvm/IR/Instructions.h>
+#include <vector>
 #include "driver.hpp"
 #include "parser.hpp"
 
@@ -63,6 +65,26 @@ void driver::codegen() {
     for (DefAST* tree: root) {
         tree->codegen(*this);
     }
+};
+
+void driver::addConstant(std::string constantName) {
+    if (!constantsScopes.empty()) {
+        constantsScopes.back().insert(constantName);
+    }
+};
+
+bool driver::isConstant(std::string identifier) {
+    if (constantsScopes.empty()) {
+        return false;
+    }
+
+    for (std::vector<std::set<std::string>>::reverse_iterator it = constantsScopes.rbegin(); it != constantsScopes.rend(); it++) {
+        if (it->find(identifier) != it->end()) {
+            return true;
+        }
+    }
+
+    return false;
 };
 
 extern driver drv;
@@ -140,7 +162,10 @@ Value *IdeExprAST::codegen(driver& drv) {
 
 /// AssignmentExprAST
 AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding)
-    : binding(binding) {};
+    : binding(binding) { isConst = false; };
+
+AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst)
+    : binding(binding), isConst(isConst) {};
 
 lexval AssignmentExprAST::getLexVal() const {
     lexval lval = binding.first;
@@ -159,6 +184,12 @@ Value *AssignmentExprAST::codegen(driver& drv) {
 
     it = drv.NamedValues.find(binding.first);
 
+    if (isConst) {
+        drv.constantsScopes.back().insert(binding.first);
+    } else if (drv.isConstant(binding.first)) {
+        LogErrorV(binding.first + " is a constant. It is not possible to modify its value");
+        return nullptr;
+    }
 
     if (it != drv.NamedValues.end()) {
         BInst = drv.NamedValues[binding.first];
@@ -240,7 +271,8 @@ Value *BinaryExprAST::codegen(driver& drv) {
     else if (Op=="and") return builder->CreateAnd(L,R,"and");
     else if (Op=="or") return builder->CreateOr(L,R,"or");
     else {
-        return LogErrorV("Binary operator "+Op+" not supported");
+        LogErrorV("Binary operator "+Op+" not supported");
+        return nullptr;
     }
 };
 
@@ -388,8 +420,9 @@ Value *CallExprAST::codegen(driver& drv) {
 
     // The second semantic check is that the retrieved function has
     // as many parameters as there are arguments provided in the AST node
-    if (CalleeF->arg_size() != Args.size())
-    return LogErrorV("Incorrect number of arguments");
+    if (CalleeF->arg_size() != Args.size()) {
+        return LogErrorV("Incorrect number of arguments");
+    }
 
     // Having passed the second check successfully, the recursive
     // evaluation of the arguments present in the call is prepared
@@ -681,6 +714,8 @@ Value *LetExprAST::codegen(driver& drv) {
     std::map<std::string,AllocaInst*> AllocaTmp;
     std::map<std::string,AllocaInst*>::iterator it;
 
+    drv.constantsScopes.push_back(std::set<std::string>());
+
     for (int j=0, e=Bindings.size(); j<e; j++) {
         std::string ide = Bindings.at(j).first;
 
@@ -721,6 +756,9 @@ Value *LetExprAST::codegen(driver& drv) {
             drv.NamedValues[ide] = AllocaTmp[ide];
         }
     }
+
+    drv.constantsScopes.pop_back();
+
    	return letVal;
 };
 
@@ -892,6 +930,9 @@ Function *FunctionAST::codegen(driver& drv) {
         return nullptr;
     }
 
+    drv.constantsScopes.push_back(std::set<std::string>());
+    std::map<std::string, AllocaInst*> tmpNamedValues = drv.NamedValues;
+
     // The function has been defined and, at the moment, "contains" only the code
     // to generate its prototype. It's therefore time to generate
     // the rest of the function
@@ -949,6 +990,9 @@ Function *FunctionAST::codegen(driver& drv) {
     // finally emit the function code to stderr
     function->print(errs());
     fprintf(stderr, "\n");
+
+    drv.constantsScopes.pop_back();
+    drv.NamedValues = tmpNamedValues;
 
     return function;
 };

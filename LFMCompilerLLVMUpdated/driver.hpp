@@ -22,6 +22,7 @@ using namespace llvm;
 #include <variant>
 #include <algorithm>
 #include <vector>
+#include <set>
 #include <iterator>
 
 /******* "Lexical value" data type for numbers and identifiers ********/
@@ -37,11 +38,14 @@ class driver {
     	int parse(const std::string& f); // Initializes and executes the parsing process
     	void codegen();              // Produces intermediate code by visiting the Abstract
     								// Syntax Forest (ASF)
+        void addConstant(std::string constantName);
+        bool isConstant(std::string identifier);
 
     	std::map<std::string, AllocaInst*> NamedValues;
     								// Associative table to implement scope mechanisms and semantic analysis
                                     // Values are added when generating a function or a letexpr binding
         std::vector<std::string> forwardDeclarations = {};
+        std::vector<std::set<std::string>> constantsScopes = {std::set<std::string>()};
         std::vector<ForExprAST*> loopStack = {};
         std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
@@ -120,9 +124,11 @@ class IdeExprAST : public ExprAST {
 class AssignmentExprAST : public ExprAST {
     private:
         std::pair<std::string, ExprAST*> binding;
+        bool isConst;
 
     public:
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding);
+        AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst);
         lexval getLexVal() const;
         void visit() override;
         Value *codegen(driver& drv) override;
