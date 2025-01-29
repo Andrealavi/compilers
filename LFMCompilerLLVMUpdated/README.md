@@ -110,7 +110,7 @@ For the stable version of this compiler, please visit the main repository:
   - Changed `parser.yy` and `scanner.ll` in order to properly manage the new construct
   - The syntax copies the C++ ternary operator (`condition ? trueExpr : falseExpr`)
   - Added a new example (`./code_examples/example_12.lfm`) to test it
-- Implemented constants
+- Implemented constants: (Commit: [11d6fbd](https://github.com/Andrealavi/compilers/commit/11d6fbd9a3e65c5edc2e2ea9249e321e06b7f82a))
   - Modified `driver` class in order to keep track of the constants
   - Added a vector of sets (`constantsScopes`) to manage scoping
   - Modified `FunctionAST`, `LetExprAST` and `AssignmentExprAST` to properly check and managing constants
