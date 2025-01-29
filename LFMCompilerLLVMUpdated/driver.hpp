@@ -46,7 +46,7 @@ class driver {
                                     // Values are added when generating a function or a letexpr binding
         std::vector<std::string> forwardDeclarations = {};
         std::vector<std::set<std::string>> constantsScopes = {std::set<std::string>()};
-        std::vector<ForExprAST*> loopStack = {};
+        std::vector<LoopExprAST*> loopStack = {};
         std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
     	std::string file;            // Source file
@@ -82,6 +82,12 @@ class DefAST : public RootAST {
 class ExprAST : public RootAST {
     public:
     	virtual ~ExprAST() {};
+};
+
+/// ExprAST - Base class for all loop nodes
+class LoopExprAST : public ExprAST{
+    public:
+        virtual ~LoopExprAST() {};
 };
 
 /// NumberExprAST - Class for representing numeric constants
@@ -293,7 +299,7 @@ class FunctionAST : public DefAST {
 };
 
 /// ForExprAST - Class that represents a for construct
-class ForExprAST : public ExprAST {
+class ForExprAST : public LoopExprAST {
     private:
         std::pair<std::string, ExprAST*> binding;
         ExprAST* condExpr;
@@ -302,6 +308,18 @@ class ForExprAST : public ExprAST {
 
     public:
         ForExprAST(std::pair<std::string, ExprAST*> binding, ExprAST* condExpr, ExprAST* endExpr, std::vector<ExprAST*> Body);
+        Value *codegen(driver& drv) override;
+        void visit() override;
+};
+
+/// DoWhileExprAST - Class that represents a do...while construct
+class DoWhileExprAST : public LoopExprAST {
+    private:
+        ExprAST* condExpr;
+        std::vector<ExprAST*> Body;
+
+    public:
+        DoWhileExprAST(ExprAST* condExpr, std::vector<ExprAST*> Body);
         Value *codegen(driver& drv) override;
         void visit() override;
 };

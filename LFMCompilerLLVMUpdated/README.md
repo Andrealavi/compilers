@@ -115,5 +115,9 @@ For the stable version of this compiler, please visit the main repository:
   - Added a vector of sets (`constantsScopes`) to manage scoping
   - Modified `FunctionAST`, `LetExprAST` and `AssignmentExprAST` to properly check and managing constants
   - Added a new example to test constants and scoping
+- Implemented DoWhile loop:
+  - Changed AST nodes structure by adding a `LoopExprAST` node from which for and while nodes inherit
+  - Changed `scanner.ll` and `parser.yy` accordingly
+  - Added a new example to test do while loop (`./code_examples/example_14.lfm`)
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

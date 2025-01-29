@@ -1,5 +1,6 @@
 #include <cmath>
 #include <csignal>
+#include <cstddef>
 #include <cstdlib>
 #include <llvm-18/llvm/IR/Instruction.h>
 #include <llvm-18/llvm/IR/Instructions.h>
@@ -1102,6 +1103,72 @@ Value* ForExprAST::codegen(driver& drv) {
     if (it != drv.NamedValues.find(ide)) {
         drv.NamedValues[ide] = allocaTmp.second;
     }
+
+    drv.loopStack.pop_back();
+
+    return retVal;
+};
+
+/// DoWhileExprAST
+DoWhileExprAST::DoWhileExprAST(ExprAST* condExpr, std::vector<ExprAST*> Body) : condExpr(condExpr), Body(Body) {};
+
+void DoWhileExprAST::visit(){
+    *drv.outputTarget << "[do ";
+
+    for (ExprAST* expr: Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "[while ";
+
+    condExpr->visit();
+
+    *drv.outputTarget << "]]";
+};
+
+Value *DoWhileExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    drv.loopStack.push_back(this);
+
+    // In order to implement the for in the IR four BB are created:
+    // conditionBlock: checks the for condition and operate the related branching
+    // loopBlock: executes the loop instructions
+    // updateBlock: updates the loop counter variable
+    // exitBlock: returns the value computed by the loopBlock
+    BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
+    BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
+
+    builder->CreateBr(loopBlock);
+    builder->SetInsertPoint(loopBlock);
+
+    Value *retVal = ConstantInt::get(*context, APInt(32,0));
+
+    for (ExprAST* expr : Body) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (!exprVal) {
+            return nullptr;
+        }
+
+        if (dynamic_cast<RetExprAST*>(expr)) {
+            retVal = exprVal;
+        }
+    }
+
+    builder->CreateBr(conditionBlock);
+    builder->SetInsertPoint(conditionBlock);
+
+    Value *conditionVal = condExpr->codegen(drv);
+
+    if (!conditionVal) {
+        return nullptr;
+    }
+
+    builder->CreateCondBr(conditionVal, loopBlock, exitBlock);
+
+    builder->SetInsertPoint(exitBlock);
 
     drv.loopStack.pop_back();
 

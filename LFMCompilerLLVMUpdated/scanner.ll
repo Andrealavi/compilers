@@ -62,6 +62,8 @@ blank   [ \t]
 "function" return yy::parser::make_DEF     (loc);
 "global" return yy::parser::make_GLOBAL    (loc);
 "const"  return yy::parser::make_CONST     (loc);
+"do"     return yy::parser::make_DO        (loc);
+"while"  return yy::parser::make_WHILE     (loc);
 "for"    return yy::parser::make_FOR       (loc);
 "break"  return yy::parser::make_BREAK     (loc);
 "return" return yy::parser::make_RETURN    (loc);

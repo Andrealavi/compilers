@@ -1,0 +1,13 @@
+function main()
+    i = 0;
+
+    do {
+        i = i + 1;
+
+        if  i > 3   { break }
+            true    { i = i * 50 }
+        end
+    } while ( i < 100 ) end;
+
+    return i
+end

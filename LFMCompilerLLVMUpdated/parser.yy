@@ -18,7 +18,7 @@
   class IfExprAST;
   class LetExprAST;
   class DefAST;
-  class ForExprAST;
+  class LoopExprAST;
 
   // Tell Flex the lexer's prototype ...
 # define YY_DECL \
@@ -67,6 +67,8 @@ YY_DECL;
   GLOBAL     "global"
   CONST      "const"
   FOR        "for"
+  DO         "do"
+  WHILE      "while"
   BREAK      "break"
   RETURN     "return"
   IF         "if"
@@ -104,7 +106,7 @@ YY_DECL;
 %type <LetExprAST*> letexpr
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
-%type <ExprAST*> forexpr
+%type <LoopExprAST*> loopexpr
 %type <ExprAST*> retexpr
 %type <ExprAST*> callexpr
 
@@ -184,7 +186,7 @@ expr:
 |   "break"                { $$ = new BreakExprAST(); }
 |   condexpr               { $$ = $1; }
 |   pipexpr                { $$ = new PipExprAST($1); }
-|   forexpr                { $$ = $1; }
+|   loopexpr               { $$ = $1; }
 |   ternaryexpr            { $$ = $1; }
 |   letexpr                { $$ = $1; };
 
@@ -210,8 +212,9 @@ pipexpr:
 callexpr:
     "id" "(" arglist ")"   { $$ = new CallExprAST($1, $3); };
 
-forexpr:
+loopexpr:
     "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"   { $$ = new ForExprAST($3, $5, $7, $9); };
+|   "do" "{" exprs "}" "while" "(" boolexpr ")" "end"                 { $$ = new DoWhileExprAST($7, $3); };
 
 pairs:
     pair                   { std::vector<std::pair<ExprAST*, std::vector<ExprAST*>>> P = {$1}; $$ = P; }
