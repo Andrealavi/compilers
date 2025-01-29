@@ -48,6 +48,8 @@ YY_DECL;
   MOD        "%"
   LPAREN     "("
   RPAREN     ")"
+  LSPAREN    "["
+  RSPAREN    "]"
   LCPAREN    "{"
   RCPAREN    "}"
   ALT        "|"
@@ -59,6 +61,7 @@ YY_DECL;
   GT         ">"
   BIND       "="
   TERNARY    "?"
+  ARRAY      "array"
   TRUE       "true"
   FALSE      "false"
   EXTERN     "external"
@@ -106,6 +109,9 @@ YY_DECL;
 %type <LetExprAST*> letexpr
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
+%type <ExprAST*> arraydef
+%type <ExprAST*> assignment
+%type <ExprAST*> var_or_array
 %type <LoopExprAST*> loopexpr
 %type <ExprAST*> retexpr
 %type <ExprAST*> callexpr
@@ -168,9 +174,18 @@ exprs_list:
 
 expr_or_other:
     expr                                { $$ = $1; }
-|   binding                             { $$ = new AssignmentExprAST($1); }
+|   assignment                          { $$ = $1; }
+|   arraydef                            { $$ = $1; }
 |   "const" binding                     { $$ = new AssignmentExprAST($2, true); }
 |   retexpr                             { $$ = $1; };
+
+assignment:
+    binding                             { $$ = new AssignmentExprAST($1); }
+|   "id" "[" "number" "]" "=" expr      { std::pair<std::string, ExprAST*> C ($1,$6); $$ = new AssignmentExprAST(C, $3); };
+
+var_or_array:
+    "id"                   { $$ = new IdeExprAST($1);}
+|   "id" "[" "number" "]"  { $$ = new IdeExprAST($1, $3); };
 
 expr:
     expr "+" expr          { $$ = new BinaryExprAST("+",$1,$3); }
@@ -181,7 +196,7 @@ expr:
 |   expr "%" expr          { $$ = new BinaryExprAST("%",$1,$3); }
 |   "-" expr %prec UMINUS  { $$ = new UnaryExprAST("-",$2); }
 |   "(" expr ")"           { $$ = $2; }
-|   "id"                   { $$ = new IdeExprAST($1); }
+|   var_or_array           { $$ = $1; }
 |   "number"               { $$ = new NumberExprAST($1); }
 |   "break"                { $$ = new BreakExprAST(); }
 |   condexpr               { $$ = $1; }
@@ -258,6 +273,9 @@ bindings:
 
 binding:
     "id" "=" expr           { std::pair<std::string, ExprAST*> C ($1,$3); $$ = C; }
+
+arraydef:
+    "array" "id" "=" "{" args "}"   { $$ = new ArrayExprAST($2, $5); };
 
 %%
 

@@ -102,6 +102,19 @@ class NumberExprAST : public ExprAST {
     	Constant *codegen(driver& drv) override;
 };
 
+/// ArrayExprAST - Class for representing arrays
+class ArrayExprAST : public ExprAST {
+    private:
+        std::string name;
+    	std::vector<ExprAST*> Values;
+        int numElements;
+
+    public:
+    	ArrayExprAST(std::string name, std::vector<ExprAST*> Values);
+    	void visit() override;
+    	Value *codegen(driver& drv) override;
+};
+
 /// BoolConstAST - Class for representing boolean constants
 class BoolConstAST : public ExprAST {
     private:
@@ -118,9 +131,11 @@ class BoolConstAST : public ExprAST {
 class IdeExprAST : public ExprAST {
     private:
     	std::string Name;
+        int index = -1;
 
     public:
     	IdeExprAST(std::string &Name);
+        IdeExprAST(std::string &Name, int index);
     	lexval getLexVal() const;
     	void visit() override;
     	Value *codegen(driver& drv) override;
@@ -131,10 +146,12 @@ class AssignmentExprAST : public ExprAST {
     private:
         std::pair<std::string, ExprAST*> binding;
         bool isConst;
+        int index = -1;
 
     public:
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding);
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst);
+        AssignmentExprAST(std::pair<std::string, ExprAST*> binding, int index);
         lexval getLexVal() const;
         void visit() override;
         Value *codegen(driver& drv) override;

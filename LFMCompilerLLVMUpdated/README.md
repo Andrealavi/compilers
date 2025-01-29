@@ -119,5 +119,9 @@ For the stable version of this compiler, please visit the main repository:
   - Changed AST nodes structure by adding a `LoopExprAST` node from which for and while nodes inherit
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added a new example to test do while loop (`./code_examples/example_14.lfm`)
+- Implemented integers arrays:
+  - Created a new AST node (`ArrayExprAST`) to manage Array creation
+  - Changed `scanner.ll` and `parser.yy` accordingly
+  - Added a new example to test arrays (`./code_examples/example_14.lfm`)
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

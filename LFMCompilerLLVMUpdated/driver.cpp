@@ -1,9 +1,10 @@
 #include <cmath>
 #include <csignal>
-#include <cstddef>
 #include <cstdlib>
 #include <llvm-18/llvm/IR/Instruction.h>
 #include <llvm-18/llvm/IR/Instructions.h>
+#include <string>
+#include <strings.h>
 #include <vector>
 #include "driver.hpp"
 #include "parser.hpp"
@@ -107,6 +108,57 @@ Constant *NumberExprAST::codegen(driver& drv) {
     return ConstantInt::get(*context, APInt(32,Val));
 };
 
+/// ArrayExprAST
+ArrayExprAST::ArrayExprAST(std::string name, std::vector<ExprAST*> Values) : name(name), Values(Values) { numElements = Values.size(); };
+
+void ArrayExprAST::visit() {
+    *drv.outputTarget << "[" << name;
+
+    for (ExprAST* expr : Values) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]";
+};
+
+Value *ArrayExprAST::codegen(driver& drv) {
+    ArrayType *arrayType = ArrayType::get(Type::getInt32Ty(*context), numElements);
+
+    AllocaInst *arrayInst;
+    std::map<std::string, AllocaInst*>::iterator it;
+
+    it = drv.NamedValues.find(name);
+
+    if (it != drv.NamedValues.end()) {
+        arrayInst = drv.NamedValues[name];
+    } else {
+        Function *function = builder->GetInsertBlock()->getParent();
+
+        arrayInst = MakeAlloca(function, name, arrayType);
+        drv.NamedValues[name] = arrayInst;
+    }
+
+    for (int i = 0; i < numElements; i++) {
+        std::vector<Value*> indices = {
+            ConstantInt::get(Type::getInt32Ty(*context), 0),
+            ConstantInt::get(Type::getInt32Ty(*context), i),
+        };
+
+        Value *elementPtr = builder->CreateInBoundsGEP(arrayType, arrayInst, indices, "elementPtr");
+
+        Value *exprVal = Values[i]->codegen(drv);
+
+        builder->CreateStore(exprVal, elementPtr);
+    }
+
+    std::vector<Value*> indices = {
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+    };
+
+    return builder->CreateInBoundsGEP(arrayType, arrayInst, indices);
+};
+
 /// BoolConstAST
 /*
     Differs from NumberExprAST because it's limited to constants 0 and 1
@@ -132,13 +184,19 @@ Constant *BoolConstAST::codegen(driver& drv) {
 /// IdeExprAST
 IdeExprAST::IdeExprAST(std::string &Name): Name(Name) {};
 
+IdeExprAST::IdeExprAST(std::string &Name, int index): Name(Name), index(index) {};
+
 lexval IdeExprAST::getLexVal() const {
     lexval lval = Name;
     return lval;
 };
 
 void IdeExprAST::visit() {
-    *drv.outputTarget << drv.opening << Name << drv.closing;
+    if (index >= 0) {
+        *drv.outputTarget << drv.opening << Name << index << drv.closing;
+    } else {
+        *drv.outputTarget << drv.opening << Name << drv.closing;
+    }
 };
 
 Value *IdeExprAST::codegen(driver& drv) {
@@ -147,8 +205,24 @@ Value *IdeExprAST::codegen(driver& drv) {
     AllocaInst *L = drv.NamedValues[Name];
 
     if (L) {
-        Value *V = builder->CreateLoad(Type::getInt32Ty(*context),
-                                        L, Name);
+        Value *V;
+
+        if (index >= 0) {
+            ArrayType *arrayType = cast<ArrayType>(L->getAllocatedType());
+
+            std::vector<Value*> indices = {
+                ConstantInt::get(Type::getInt32Ty(*context), 0),
+                ConstantInt::get(Type::getInt32Ty(*context), index),
+            };
+
+            Value *elementPtr = builder->CreateInBoundsGEP(arrayType, L, indices);
+
+            V = builder->CreateLoad(Type::getInt32Ty(*context), elementPtr, Name);
+        } else {
+            V = builder->CreateLoad(Type::getInt32Ty(*context),
+                                            L, Name);
+        }
+
         return V;
     } else {
         GlobalVariable* G = module->getNamedGlobal(Name);
@@ -165,6 +239,10 @@ Value *IdeExprAST::codegen(driver& drv) {
 AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding)
     : binding(binding) { isConst = false; };
 
+AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, int index)
+    : binding(binding), index(index) { isConst = false; };
+
+
 AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst)
     : binding(binding), isConst(isConst) {};
 
@@ -174,7 +252,12 @@ lexval AssignmentExprAST::getLexVal() const {
 };
 
 void AssignmentExprAST::visit() {
-    *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
+    if (index >= 0) {
+        *drv.outputTarget << "[= " << drv.opening << binding.first << index << drv.closing;
+    } else {
+        *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
+    }
+
     binding.second->visit();
     *drv.outputTarget << "]";
 };
@@ -203,7 +286,20 @@ Value *AssignmentExprAST::codegen(driver& drv) {
 
     Value *boundval = binding.second->codegen(drv);
 
-    builder->CreateStore(boundval, BInst);
+    if (index >= 0) {
+        ArrayType *arrayType = cast<ArrayType>(BInst->getAllocatedType());
+
+        std::vector<Value*> indices = {
+            ConstantInt::get(Type::getInt32Ty(*context), 0),
+            ConstantInt::get(Type::getInt32Ty(*context), index),
+        };
+
+        Value *elementPtr = builder->CreateInBoundsGEP(arrayType, BInst, indices);
+
+        builder->CreateStore(boundval, elementPtr);
+    } else {
+        builder->CreateStore(boundval, BInst);
+    }
 
     return boundval;
 };

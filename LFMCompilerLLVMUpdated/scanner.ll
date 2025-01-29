@@ -44,8 +44,10 @@ blank   [ \t]
 "%"      return yy::parser::make_MOD       (loc);
 "("      return yy::parser::make_LPAREN    (loc);
 ")"      return yy::parser::make_RPAREN    (loc);
-"{"      return yy::parser::make_LCPAREN    (loc);
-"}"      return yy::parser::make_RCPAREN    (loc);
+"["      return yy::parser::make_LSPAREN   (loc);
+"]"      return yy::parser::make_RSPAREN   (loc);
+"{"      return yy::parser::make_LCPAREN   (loc);
+"}"      return yy::parser::make_RCPAREN   (loc);
 "|"      return yy::parser::make_ALT       (loc);
 "<="     return yy::parser::make_LE        (loc);
 "<>"     return yy::parser::make_NEQ       (loc);
@@ -55,6 +57,7 @@ blank   [ \t]
 ">"      return yy::parser::make_GT        (loc);
 "="      return yy::parser::make_BIND      (loc);
 "?"      return yy::parser::make_TERNARY   (loc);
+"array"  return yy::parser::make_ARRAY     (loc);
 "true"   return yy::parser::make_TRUE      (loc);
 "false"  return yy::parser::make_FALSE     (loc);
 "external" return yy::parser::make_EXTERN  (loc);
