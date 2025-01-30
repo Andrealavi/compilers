@@ -1,9 +1,8 @@
-#include <csignal>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <set>
 #include <queue>
-#include <variant>
 #include <vector>
 
 const std::set<char> A = {'a', 'c'};
@@ -95,16 +94,11 @@ class NFA {
             return {};
         }
 
-        void setTransition(int state, char input_char, std::variant<int, int*> transition_states) {
+        void setTransition(int state, char input_char, std::vector<int> transitions) {
             input_chars[state] = input_char;
 
-            if (int* transition_state = std::get_if<int>(&transition_states)) {
-                first_state[state] = *transition_state;
-                second_state[state] = -1;
-            } else {
-                first_state[state] = transition_state[0];
-                second_state[state] = transition_state[1];
-            }
+            first_state[state] = transitions[0];
+            second_state[state] = transitions[1];
         }
 };
 
