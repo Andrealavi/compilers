@@ -5,8 +5,6 @@
 #include <queue>
 #include <vector>
 
-const std::set<char> A = {'a', 'c'};
-
 /// DFA - Class that represents a Deterministic Finite Automaton
 class DFA {
     private:
