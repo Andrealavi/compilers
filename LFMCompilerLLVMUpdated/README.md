@@ -10,12 +10,12 @@ For the stable version of this compiler, please visit the main repository:
 
 ## Changes
 
-- Support to inline and multiline comments: (Commit: [26921b0](https://github.com/Andrealavi/compilers/commit/26921b030313de503d2191ced758e08e5322a3fa))
+- Support to inline and multiline comments: (Commit: [ced766d](https://github.com/Andrealavi/compilers/commit/ced766de63c796556731813ddd3414c3a2734e4f))
 	Added the following regexs in the `scanner.ll` file alongside with the code to manage them (in this case it is simple since they have to be ignored by the scanner)
 
   ```flex
-  inline_comment \/\/[ a-zA-Z0-9'*.]*
-  multiline_comment \/\*[\t\na-zA-Z0-9 .*]*\*\/
+  inline_comment \/\/.*
+  multiline_comment \/\*.*\*\/
 
   ...
 
