@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -12,6 +13,7 @@ class DFA {
         std::set<char> alphabet;
         int numStates = 0;
         std::vector<std::map<char, int>> transitions = {};
+        std::set<int> finalStates;
 
     public:
         DFA(std::set<char> a, int s) : alphabet(a), numStates(s) {
@@ -53,6 +55,10 @@ class DFA {
 
         int getInitialState() { return initialState; }
 
+        void addFinalState(int state) { finalStates.insert(state); }
+
+        std::set<int> getFinalStates() { return finalStates; }
+
         void setTransition(int state, char input_char, int transition_state) { transitions[state][input_char] = transition_state; }
 };
 
@@ -64,6 +70,7 @@ class NFA {
         std::vector<char> input_chars;
         std::vector<int> first_state;
         std::vector<int> second_state;
+        std::set<int> finalStates;
 
     public:
         NFA(int numStates) : numStates(numStates) {}
@@ -74,9 +81,8 @@ class NFA {
             second_state.resize(numStates);
         }
 
-        NFA(std::vector<char> ic, std::vector<int> fs, std::vector<int> ss) : input_chars(ic), first_state(fs), second_state(ss) {
-            numStates = input_chars.size();
-        }
+        NFA(std::vector<char> ic, std::vector<int> fs, std::vector<int> ss, std::set<int> finalStates)
+            : input_chars(ic), first_state(fs), second_state(ss), finalStates(finalStates) { numStates = input_chars.size(); }
 
         int getInitialState() { return initialState; }
 
@@ -91,6 +97,8 @@ class NFA {
 
             return {};
         }
+
+        std::set<int> getFinalStates() { return finalStates; }
 
         void setTransition(int state, char input_char, std::vector<int> transitions) {
             input_chars[state] = input_char;
@@ -165,6 +173,7 @@ DFA subsetConstruction(std::set<char> alphabet, NFA nAutomaton) {
     initialStateSet->insert(nAutomaton.getInitialState());
 
     nonVisitedStates->push(epsilonClosure(&nAutomaton, initialStateSet));
+    std::set<int> finalStates = nAutomaton.getFinalStates();
 
     std::map<std::set<int>*, int> subsetsState;
     int state = 0;
@@ -176,6 +185,7 @@ DFA subsetConstruction(std::set<char> alphabet, NFA nAutomaton) {
         std::set<int>* statesSubset = nonVisitedStates->front();
 
         for (char inputChar : alphabet) {
+            bool isFinal = false;
             std::set<int>* T = new std::set<int>;
 
             for (const int& state : *statesSubset) {
@@ -192,6 +202,12 @@ DFA subsetConstruction(std::set<char> alphabet, NFA nAutomaton) {
 
             T = epsilonClosure(&nAutomaton, T);
 
+            for (const int& s : *T) {
+                if (finalStates.find(s) != finalStates.end()) {
+                    isFinal = true;
+                }
+            }
+
             int k;
 
             if (!T->empty() && !hasEqualSet(alreadySeen, T)) {
@@ -207,6 +223,9 @@ DFA subsetConstruction(std::set<char> alphabet, NFA nAutomaton) {
             }
 
             automaton.setTransition(subsetsState[statesSubset], inputChar, k);
+            if (isFinal) {
+                automaton.addFinalState(k);
+            }
         }
 
         nonVisitedStates->pop();
@@ -223,8 +242,9 @@ int main(int argc, char **argv) {
     std::vector<char> ic = {'-', 'a', 'b', '-', '-', 'a', '-', 'c', '-', ' '};
     std::vector<int> fs = {1, 2, 3, 9, 5, 6, 5, 8, 9, -1};
     std::vector<int> ss = {4, -1, -1, -1, 7, -1, 7, -1, -1, -1};
+    std::set<int> finalStates = {9};
 
-    NFA prova = NFA(ic, fs, ss);
+    NFA prova = NFA(ic, fs, ss, finalStates);
 
     DFA prova2 = subsetConstruction(alphabet, prova);
     std::vector<std::map<char, int>> transitions = prova2.getTransitions();
@@ -236,6 +256,10 @@ int main(int argc, char **argv) {
         for (auto const& [k, v] : t) {
             std::cout << k << ": " << v << std::endl;
         }
+    }
+
+    for (const int& s : prova2.getFinalStates()) {
+        std::cout << s << std::endl;
     }
 
 
