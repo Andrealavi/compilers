@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <optional>
 #include <queue>
 #include <map>
@@ -15,27 +16,10 @@ class DFA {
         std::set<int> finalStates;
 
     public:
-        DFA(int s) : numStates(s) {
-            for (int i = 0; i < numStates; i++) {
-                transitions.push_back(std::map<char, int>());
-            }
-        }
-
+        // Constructor
         DFA() {}
 
-        DFA(int s, int initialState) : numStates(s), initialState(initialState) {
-            transitions = {};
-
-            for (int i = 0; i < numStates; i++) {
-                transitions.push_back(std::map<char, int>());
-            }
-        }
-
         // Getters
-        int getInitialState() const { return initialState; }
-
-        int getNumStates() const { return numStates; }
-
         std::set<int> getFinalStates() const { return finalStates; }
 
         std::vector<std::map<char, int>> getTransitions() const { return transitions; }
@@ -65,6 +49,39 @@ class DFA {
         void addFinalState(int state) { finalStates.insert(state); }
 
         void setTransition(int state, char input_char, int transition_state) { transitions[state][input_char] = transition_state; }
+
+        void toDOT(std::ostream& file) {
+            file << "digraph DFA {" << std::endl;
+            file << "rankdir=LR" << std::endl;
+
+            int state = 0;
+
+            std::string nodeConfig;
+
+            file << "{" << std::endl;
+
+            for (int i = 0; i < numStates; i++) {
+                if (finalStates.find(i) != finalStates.end()) {
+                    file << i << "[shape=doublecircle]" << std::endl;
+                } else {
+                    file << i << "[shape=circle]" << std::endl;
+                }
+            }
+
+            file << "}" << std::endl;
+
+            for (auto stateTransitions : transitions) {
+                for (auto const& [k, v] : stateTransitions) {
+                    nodeConfig = (" [label=\"" + std::string{k} + "\"]");
+
+                    file << state << " -> " << v << nodeConfig << std::endl;
+                }
+
+                state++;
+            }
+
+            file << "}" << std::endl;
+        }
 };
 
 /// NFA - Class that represents a Nondeterministic Finite Automaton
@@ -78,6 +95,8 @@ class NFA {
         std::set<int> finalStates;
 
     public:
+        NFA() {}
+
         NFA(int numStates) : numStates(numStates) {}
 
         NFA(int initialState, int numStates) : initialState(initialState), numStates(numStates) {
@@ -92,10 +111,6 @@ class NFA {
         // Getters
         int getInitialState() const { return initialState; }
 
-        int getNumStates() const { return numStates; }
-
-        std::vector<char> getInputChars() const { return input_chars; }
-
         std::set<int> getFinalStates() const { return finalStates; }
 
         std::vector<int> getTransition(int state, char input_char) const {
@@ -108,12 +123,84 @@ class NFA {
             return {};
         }
 
-        // Setters
-        void setTransition(int state, char input_char, std::vector<int> transitions) {
-            input_chars[state] = input_char;
+        std::set<char> getAlphabet() const {
+            std::set<char> alphabet;
 
-            first_state[state] = transitions[0];
-            second_state[state] = transitions[1];
+            for (const char c : input_chars) {
+                if (alphabet.find(c) == alphabet.end() && c != '-' && c != ' ') {
+                    alphabet.insert(c);
+                }
+            }
+
+            return alphabet;
+        }
+
+        // Setters
+        bool loadState(std::ifstream& file) {
+            file >> numStates;
+
+            input_chars.resize(numStates);
+            first_state.resize(numStates);
+            second_state.resize(numStates);
+
+            file >> initialState;
+
+            std::string line;
+            std::getline(file, line); // consume leftover newline
+
+            for (int i = 0; i < numStates; i++) {
+                std::getline(file, line);
+                std::stringstream ss(line);
+                std::string token;
+
+                // Parse input_char,first_state,second_state
+                std::getline(ss, token, ',');
+                input_chars[i] = token[0];
+
+                std::getline(ss, token, ',');
+                first_state[i] = std::stoi(token);
+
+                std::getline(ss, token, ',');
+                second_state[i] = std::stoi(token);
+            }
+
+            int finalState;
+            while (file >> finalState && finalState != -1) {
+                finalStates.insert(finalState);
+            }
+
+            file.close();
+
+            return true;
+        }
+
+        // Converts the NonDeterministic
+        void toDOT(std::ostream& file) {
+            file << "digraph NFA {" << std::endl;
+            file << "rankdir=LR" << std::endl;
+
+            for (int i = 0; i < numStates; i++) {
+                if (finalStates.find(i) != finalStates.end()) {
+                    file << i << "[shape=doublecircle]" << std::endl;
+                } else {
+                    file << i << "[shape=circle]" << std::endl;
+                }
+            }
+
+            for (int i = 0; i < numStates; i++) {
+                std::string label;
+
+                if (input_chars[i] == '-') {
+                    label = "ɛ";
+                } else {
+                    label = input_chars[i];
+                }
+
+                if (first_state[i] >= 0) file << i << " -> " << first_state[i] << " [label=\"" << label << "\"]" << std::endl;
+                if (second_state[i] >= 0) file << i << " -> " << second_state[i] << " [label=\"" << label << "\"]" << std::endl;
+            }
+
+            file << "}" << std::endl;
         }
 };
 
@@ -122,6 +209,7 @@ std::set<int> epsilonClosure(const NFA& nAutomaton, const std::set<int>& initial
     std::set<int> closure;
     std::queue<int> statesQueue;
 
+    // Adds the elements in the given set to the closure
     for (const auto& state : initialStates) {
         statesQueue.push(state);
         closure.insert(state);
@@ -131,6 +219,7 @@ std::set<int> epsilonClosure(const NFA& nAutomaton, const std::set<int>& initial
         int state = statesQueue.front();
         statesQueue.pop();
 
+        // If there is an ɛ-transition the reached states are added to the closure
         auto transitions = nAutomaton.getTransition(state, '-');
 
         if (!transitions.empty()) {
@@ -170,6 +259,7 @@ DFA subsetConstruction(const std::set<char>& alphabet, const NFA& nAutomaton) {
         for (auto inputChar : alphabet) {
             bool isFinal = false;
             std::set<int> T = std::set<int>();
+
 
             for (const int& state : currentSubset) {
                 std::vector<int> trans = nAutomaton.getTransition(state, inputChar);
@@ -213,33 +303,53 @@ DFA subsetConstruction(const std::set<char>& alphabet, const NFA& nAutomaton) {
 }
 
 /// Main function used to test subsetConstruction function
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
+    static std::ifstream infile;
+    static std::ofstream outfile;
 
-    std::set<char> alphabet = {'a', 'b', 'c'};
+    NFA nAutomaton;
+    DFA dAutomaton;
 
-    std::vector<char> ic = {'-', 'a', 'b', '-', '-', 'a', '-', 'c', '-', ' '};
-    std::vector<int> fs = {1, 2, 3, 9, 5, 6, 5, 8, 9, -1};
-    std::vector<int> ss = {4, -1, -1, -1, 7, -1, 7, -1, -1, -1};
-    std::set<int> finalStates = {9};
+    if (argc > 1) {
+        if (argv[1] == std::string("--input")) {
+            try {
+                infile.open(argv[2]);
 
-    NFA prova = NFA(ic, fs, ss, finalStates);
+                if (argv[3] == std::string("--output")) {
+                    outfile.open(argv[4]);
+                } else {
+                    outfile.open("out.dot");
+                }
 
-    DFA prova2 = subsetConstruction(alphabet, prova);
-    auto transitions = prova2.getTransitions();
+                if (!infile.is_open()) {
+                    throw std::ios_base::failure("Error in opening the input file");
+                } else if (!outfile.is_open()) {
+                    throw std::ios_base::failure("Error in opening the output file");
+                }
 
-    int i = 0;
+                nAutomaton.loadState(infile);
 
-    for (std::map<char, int> t : transitions) {
-        std::cout << i++ << std::endl;
-        for (auto const& [k, v] : t) {
-            std::cout << k << ": " << v << std::endl;
+                if (argv[5] == std::string("-n")) {
+                    nAutomaton.toDOT(outfile);
+                } else {
+                    dAutomaton = subsetConstruction(nAutomaton.getAlphabet(), nAutomaton);
+                    dAutomaton.toDOT(outfile);
+                }
+
+                outfile.close();
+
+                std::cout << "Parse successfull" << std::endl;
+            } catch(std::ios_base::failure err) {
+                std::cerr << err.what() << std::endl;
+            }
         }
+    } else {
+        std::cerr << "You must provide at least an input file with the non deterministic finite automaton data" << std::endl;
+        std::cout << "This utility can create a .dot file given a configuration file for a non-deterministic finite automata" << std::endl;
+        std::cout << "It is possible to create a .dot file of the NFA using the -n flag," << std::endl;
+        std::cout << "otherwise will be returned the .dot file of the DFA obtained using subset construction algorithm" << std::endl;
+        std::cout << "Example: ./subset_construction --input your_input_file [--output your_output_file -n]" << std::endl;
     }
-
-    for (const int& s : prova2.getFinalStates()) {
-        std::cout << s << std::endl;
-    }
-
 
     return 0;
 }
