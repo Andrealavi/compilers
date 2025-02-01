@@ -53,22 +53,21 @@ class DFA {
         void toDOT(std::ostream& file) {
             file << "digraph DFA {" << std::endl;
             file << "rankdir=LR" << std::endl;
+            file << "\"\" [shape=none, label=\"\"]" << std::endl;
 
             int state = 0;
 
             std::string nodeConfig;
 
-            file << "{" << std::endl;
-
             for (int i = 0; i < numStates; i++) {
                 if (finalStates.find(i) != finalStates.end()) {
                     file << i << "[shape=doublecircle]" << std::endl;
+                } else if (i == initialState) {
+                    file << "\"\" -> " << i << std::endl;
                 } else {
                     file << i << "[shape=circle]" << std::endl;
                 }
             }
-
-            file << "}" << std::endl;
 
             for (auto stateTransitions : transitions) {
                 for (auto const& [k, v] : stateTransitions) {
@@ -178,10 +177,13 @@ class NFA {
         void toDOT(std::ostream& file) {
             file << "digraph NFA {" << std::endl;
             file << "rankdir=LR" << std::endl;
+            file << "\"\" [shape=none, label=\"\"]" << std::endl;
 
             for (int i = 0; i < numStates; i++) {
                 if (finalStates.find(i) != finalStates.end()) {
                     file << i << "[shape=doublecircle]" << std::endl;
+                } else if (i == initialState) {
+                    file << "\"\" -> " << i << std::endl;
                 } else {
                     file << i << "[shape=circle]" << std::endl;
                 }
@@ -310,38 +312,44 @@ int main(int argc, char *argv[]) {
     NFA nAutomaton;
     DFA dAutomaton;
 
+    bool returnNondeterministic = false;
+
     if (argc > 1) {
-        if (argv[1] == std::string("--input")) {
-            try {
-                infile.open(argv[2]);
-
-                if (argv[3] == std::string("--output")) {
-                    outfile.open(argv[4]);
-                } else {
-                    outfile.open("out.dot");
+        try {
+            for (int i = 1; i < argc; ++i) {
+                if (argv[i] == std::string("--input")) {
+                    infile.open(argv[++i]);
+                } else if (argv[i] == std::string("--output")) {
+                    outfile.open(argv[++i]);
+                } else if (argv[i] == std::string("-n")) {
+                    returnNondeterministic = true;
                 }
-
-                if (!infile.is_open()) {
-                    throw std::ios_base::failure("Error in opening the input file");
-                } else if (!outfile.is_open()) {
-                    throw std::ios_base::failure("Error in opening the output file");
-                }
-
-                nAutomaton.loadState(infile);
-
-                if (argv[5] == std::string("-n")) {
-                    nAutomaton.toDOT(outfile);
-                } else {
-                    dAutomaton = subsetConstruction(nAutomaton.getAlphabet(), nAutomaton);
-                    dAutomaton.toDOT(outfile);
-                }
-
-                outfile.close();
-
-                std::cout << "Parse successfull" << std::endl;
-            } catch(std::ios_base::failure err) {
-                std::cerr << err.what() << std::endl;
             }
+
+            if (!outfile.is_open()) {
+                outfile.open("output.dot");
+            }
+
+            if (!infile.is_open()) {
+                throw std::ios_base::failure("Error in opening the input file");
+            } else if (!outfile.is_open()) {
+                throw std::ios_base::failure("Error in opening the output file");
+            }
+
+            nAutomaton.loadState(infile);
+
+            if (returnNondeterministic) {
+                nAutomaton.toDOT(outfile);
+            } else {
+                dAutomaton = subsetConstruction(nAutomaton.getAlphabet(), nAutomaton);
+                dAutomaton.toDOT(outfile);
+            }
+
+            outfile.close();
+
+            std::cout << "Parse successfull" << std::endl;
+        } catch(std::ios_base::failure err) {
+            std::cerr << err.what() << std::endl;
         }
     } else {
         std::cerr << "You must provide at least an input file with the non deterministic finite automaton data" << std::endl;
