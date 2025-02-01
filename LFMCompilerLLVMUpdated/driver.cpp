@@ -294,7 +294,7 @@ Value *AssignmentExprAST::codegen(driver& drv) {
     } else {
         Function *function = builder->GetInsertBlock()->getParent();
 
-        BInst = MakeAlloca(function, binding.first, BInst->getAllocatedType());
+        BInst = MakeAlloca(function, binding.first);
         drv.NamedValues[binding.first] = BInst;
     }
 
