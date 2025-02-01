@@ -1,10 +1,8 @@
 #include <cmath>
 #include <csignal>
 #include <cstdlib>
-#include <llvm-18/llvm/ADT/Bitfields.h>
-#include <llvm-18/llvm/IR/Instruction.h>
-#include <llvm-18/llvm/IR/Instructions.h>
-#include <llvm-18/llvm/IR/Value.h>
+#include <llvm-18/llvm/IR/Constant.h>
+#include <llvm-18/llvm/IR/Constants.h>
 #include <string>
 #include <strings.h>
 #include <vector>
@@ -1420,6 +1418,137 @@ Value *DoWhileExprAST::codegen(driver& drv) {
     builder->CreateCondBr(conditionVal, loopBlock, exitBlock);
 
     builder->SetInsertPoint(exitBlock);
+
+    drv.loopStack.pop_back();
+
+    return retVal;
+};
+
+/// ForRangeExprAST
+ForRangeExprAST::ForRangeExprAST(ExprAST* elementExpr, ExprAST* arrayExpr, std::vector<ExprAST*> Body)
+    : elementExpr(elementExpr), arrayExpr(arrayExpr), Body(Body) {};
+
+void ForRangeExprAST::visit() {
+    *drv.outputTarget << "[for ";
+
+    *drv.outputTarget << "[from ";
+
+    elementExpr->visit();
+    arrayExpr->visit();
+
+    *drv.outputTarget << "][in ";
+
+    for (ExprAST* expr: Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]]";
+};
+
+Value *ForRangeExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    drv.loopStack.push_back(this);
+
+    // In order to implement the for in the IR four BB are created:
+    // conditionBlock: checks the for condition and operate the related branching
+    // loopBlock: executes the loop instructions
+    // updateBlock: updates the loop counter variable
+    // exitBlock: returns the value computed by the loopBlock
+    BasicBlock *conditionBlock = BasicBlock::Create(*context, "condition", function);
+    BasicBlock *loopBlock = BasicBlock::Create(*context, "loop", function);
+    BasicBlock *updateBlock = BasicBlock::Create(*context, "update", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
+
+    // Entry BB
+
+    // Getting array and element identifiers
+    std::string arrayIde = std::get<std::string>(dynamic_cast<IdeExprAST*>(arrayExpr)->getLexVal());
+    std::string elementIde = std::get<std::string>(dynamic_cast<IdeExprAST*>(elementExpr)->getLexVal());
+
+    AllocaInst* arrayInst = drv.NamedValues[arrayIde];
+
+    // Checking that the array exists
+    if (!arrayInst) {
+        LogErrorV("Array " + arrayIde + " not found");
+        return nullptr;
+    }
+
+    ArrayType* arrayType = dyn_cast<ArrayType>(arrayInst->getAllocatedType());
+
+    // Checking that the array is really an array
+    if (!arrayType) {
+        return LogErrorV("Variable '" + arrayIde + "' is not an array type. Got type: " +
+                        std::string(arrayInst->getAllocatedType()->getTypeID() == Type::ArrayTyID ? "array" :
+                                  arrayInst->getAllocatedType()->getTypeID() == Type::IntegerTyID ? "integer" :
+                                  "other"));
+    }
+
+    // Array values are iterated using an index
+    // It is safer to use an index instead of a pointer
+    AllocaInst* itInst = MakeAlloca(function, "it");
+    Value* itVal = ConstantInt::get(Type::getInt32Ty(*context), 0);
+    builder->CreateStore(itVal, itInst);
+
+    builder->CreateBr(conditionBlock);
+    // Condition BB
+    builder->SetInsertPoint(conditionBlock);
+
+    Value* currentItVal = builder->CreateLoad(Type::getInt32Ty(*context), itInst, "currentIdx");
+    Value* arraySize = ConstantInt::get(Type::getInt32Ty(*context), arrayType->getNumElements());
+    Value* condition = builder->CreateICmpSLT(currentItVal, arraySize, "loop_condition");
+
+    builder->CreateCondBr(condition, loopBlock, exitBlock);
+
+    // Loop BB
+    builder->SetInsertPoint(loopBlock);
+
+    // Get current element
+    std::vector<Value*> indices = {
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+        currentItVal
+    };
+
+    Value* elementPtr = builder->CreateInBoundsGEP(arrayType, arrayInst, indices, "elementPtr");
+    Value* currentElement = builder->CreateLoad(Type::getInt32Ty(*context), elementPtr, "currentElement");
+
+    // Create loop variable and store current element
+    AllocaInst* elementInst = MakeAlloca(function, elementIde);
+    builder->CreateStore(currentElement, elementInst);
+
+    AllocaInst *tmpInst;
+
+    if (drv.NamedValues.find(elementIde) != drv.NamedValues.end()) {
+        tmpInst = drv.NamedValues[elementIde];
+    }
+
+    drv.NamedValues[elementIde] = elementInst;
+
+    Value *retVal = ConstantInt::get(*context, APInt(32,0));
+
+    for (ExprAST* expr : Body) {
+        Value *exprVal = expr->codegen(drv);
+
+        if (dynamic_cast<RetExprAST*>(expr)) {
+            retVal = exprVal;
+        }
+    }
+
+    builder->CreateBr(updateBlock);
+    // Update BB
+    builder->SetInsertPoint(updateBlock);
+
+    itVal = builder->CreateLoad(Type::getInt32Ty(*context), itInst, "currentIdx");
+    itVal = builder->CreateNSWAdd(itVal, ConstantInt::get(Type::getInt32Ty(*context), 0),"sum");
+    builder->CreateStore(itVal, itInst);
+
+    builder->CreateBr(conditionBlock);
+    // Exit BB
+    builder->SetInsertPoint(exitBlock);
+
+    if (tmpInst) {
+        drv.NamedValues[elementIde] = tmpInst;
+    }
 
     drv.loopStack.pop_back();
 

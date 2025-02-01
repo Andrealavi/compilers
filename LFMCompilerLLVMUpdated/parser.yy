@@ -110,6 +110,7 @@ YY_DECL;
 %type <LetExprAST*> letexpr
 %type <ExprAST*> literal
 %type <ExprAST*> relexpr
+%type <ExprAST*> identifier
 %type <ExprAST*> arraydef
 %type <ExprAST*> arraycomprehension
 %type <ExprAST*> assignment
@@ -185,8 +186,11 @@ assignment:
     binding                             { $$ = new AssignmentExprAST($1); }
 |   "id" "[" "number" "]" "=" expr      { std::pair<std::string, ExprAST*> C ($1,$6); $$ = new AssignmentExprAST(C, $3); };
 
+identifier:
+    "id"                   { $$ = new IdeExprAST($1); }
+
 var_or_array:
-    "id"                   { $$ = new IdeExprAST($1);}
+    identifier             { $$ = $1; }
 |   "id" "[" "number" "]"  { $$ = new IdeExprAST($1, $3); };
 
 expr:
@@ -232,6 +236,7 @@ callexpr:
 loopexpr:
     "for" "(" binding ";" boolexpr ";" expr ")" exprs "end"     { $$ = new ForExprAST($3, $5, $7, $9); }
 |   "do" "{" exprs "}" "while" "(" boolexpr ")" "end"           { $$ = new DoWhileExprAST($7, $3); }
+|   "for" "(" identifier ":" identifier ")" exprs "end"     { $$ = new ForRangeExprAST($3, $5, $7); }
 
 arraycomprehension:
     "{" expr "for" "id" "in" "range" "(" "number" ")" "}"       {

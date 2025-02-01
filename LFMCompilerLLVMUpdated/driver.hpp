@@ -361,6 +361,19 @@ class DoWhileExprAST : public LoopExprAST {
         void visit() override;
 };
 
+/// ForRangeExprAST - Class that represents a for range constructs
+class ForRangeExprAST : public LoopExprAST {
+    private:
+        ExprAST* elementExpr;
+        ExprAST* arrayExpr;
+        std::vector<ExprAST*> Body;
+
+    public:
+        ForRangeExprAST(ExprAST* elementExpr, ExprAST* arrayExpr, std::vector<ExprAST*> Body);
+        Value *codegen(driver& drv) override;
+        void visit() override;
+};
+
 /// BreakExprAST - Class that represents a break instruction
 class BreakExprAST : public ExprAST {
     public:
