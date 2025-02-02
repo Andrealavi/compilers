@@ -108,13 +108,33 @@ def to_postfix(regex: str) -> list[str]:
 
     return output_queue
 
+# Converts the postfix notation to AST
+def to_AST(postfix_regex: list[str]) -> ExprAST:
+    expr_stack = []
+
+    for char in postfix_regex:
+        if char.isalnum():
+            expr_stack.append(CharExprAST(char))
+        elif char == "|" or char == ".":
+            RHS = expr_stack.pop()
+            LHS = expr_stack.pop()
+
+            expr_stack.append(BinaryExprAST(char, LHS, RHS))
+        elif char == "*" or char == "+" or char == "?":
+            expr = expr_stack.pop()
+
+            expr_stack.append(UnaryExprAST(char, expr))
+
+    return expr_stack.pop()
+
 
 def main():
     regex = input("insert the regex:")
 
     regex = mangle_regex(regex)
 
-    print(to_postfix(regex))
+    root = to_AST(to_postfix(regex))
+
 
 if __name__ == "__main__":
     main()
