@@ -36,8 +36,26 @@ class CharExprAST(ExprAST):
     def codegen(self, automaton):
         pass
 
+# Function that mangles the regex by adding a dot between simple characters
+def mangle_regex(regex: str) -> str:
+    regex_lenght = len(regex)
+
+    mangled_regex: list[str] = []
+
+    for i in range(regex_lenght - 1):
+        mangled_regex.append(regex[i])
+
+        if (regex[i].isalpha() and regex[i+1].isalpha()):
+            mangled_regex.append(".")
+
+    mangled_regex.append(regex[-1])
+
+    return "".join(mangled_regex)
+
 def main():
-    pass
+    regex = input("insert the regex:")
+
+    regex = mangle_regex(regex)
 
 if __name__ == "__main__":
     main()
