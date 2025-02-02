@@ -2,3 +2,4 @@ out/
 *.o
 .zed/
 .clangd
+pyrightconfig.json
