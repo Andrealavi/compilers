@@ -185,7 +185,7 @@ def mangle_regex(regex: str) -> str:
     for i in range(regex_lenght - 1):
         mangled_regex.append(regex[i])
         # Add concatenation operator between letters
-        if ((regex[i] != '(' and regex[i] != "|") and regex[i+1].isalpha()):
+        if ((regex[i] != '(' and regex[i] != "|") and (regex[i+1].isalpha() or regex[i+1] == "(")):
             mangled_regex.append(".")
 
     mangled_regex.append(regex[-1])
@@ -285,14 +285,15 @@ def simulate_NFA(automaton: NFA, input_string: str) -> bool:
     Returns:
         True if string matches pattern, False otherwise
     """
-    current_list: list[int] = [0]  # Current active states
-    next_list: list[int] = []      # States to process in next step
+    current_list: list[int] = [0]  # List of current active states
+    next_list: list[int] = []      # List of states to process in next step
 
     # Process each character in input string
     for char in input_string:
         for state in current_list:
             # Handle character transitions
             if (automaton.input_chars[state] == char):
+                # Add valid transitions to next states list
                 if (automaton.first_states[state] not in next_list and automaton.first_states[state] >= 0):
                     next_list.append(automaton.first_states[state])
                 if (automaton.second_states[state] not in next_list and automaton.second_states[state] >= 0):
@@ -303,13 +304,12 @@ def simulate_NFA(automaton: NFA, input_string: str) -> bool:
                     current_list.append(automaton.first_states[state])
                 if (automaton.second_states[state] not in current_list and automaton.second_states[state] >= 0):
                     current_list.append(automaton.second_states[state])
-            else:
-                return False
 
+        # Prepare for next character
         current_list = next_list
         next_list = []
 
-    # Process remaining epsilon transitions
+    # Process remaining epsilon transitions after all input is consumed
     for state in current_list:
         if (automaton.input_chars[state] == "ɛ"):
             if (automaton.first_states[state] not in current_list and automaton.first_states[state] >= 0):
@@ -317,7 +317,7 @@ def simulate_NFA(automaton: NFA, input_string: str) -> bool:
             if (automaton.second_states[state] not in current_list and automaton.second_states[state] >= 0):
                 current_list.append(automaton.second_states[state])
 
-    # Check if we reached accepting state
+    # Check if we reached an accepting state
     return (automaton.num_states - 2) in current_list
 
 
@@ -325,12 +325,15 @@ def find_matches(automaton: NFA, text: str) -> List[Tuple[int, int]]:
     """
     Find all matches of the pattern in the text.
 
+    This function implements the pattern matching algorithm by trying all possible
+    substrings of the input text and keeping track of non-overlapping matches.
+
     Args:
-        automaton: Compiled NFA
+        automaton: Compiled NFA for the pattern
         text: Input text to search
 
     Returns:
-        List of (start, end) positions of matches
+        List[Tuple[int, int]]: List of (start, end) positions for each match
     """
     matches = []
     text_length = len(text)
@@ -347,6 +350,7 @@ def find_matches(automaton: NFA, text: str) -> List[Tuple[int, int]]:
     while i < len(matches):
         current_start, current_end = matches[i]
         j = i + 1
+        # Skip overlapping matches
         while j < len(matches) and matches[j][0] < current_end:
             j += 1
         filtered_matches.append((current_start, current_end))
@@ -359,14 +363,19 @@ def process_text(pattern: str, text: str, show_line_matches: bool = False, color
     """
     Process text and return matches with optional coloring and line context.
 
+    This function handles the main text processing pipeline:
+    1. Compiles the pattern into an NFA
+    2. Finds matches in the text
+    3. Formats the output according to the specified options
+
     Args:
-        pattern: Regular expression pattern
+        pattern: Regular expression pattern to search for
         text: Input text to search
         show_line_matches: If True, show entire lines containing matches
-        color: If True, colorize matches
+        color: If True, colorize matches in output
 
     Returns:
-        Formatted string containing matches
+        str: Formatted string containing matches or matching lines
     """
     # Create NFA from pattern
     mangled_pattern = mangle_regex(pattern)
@@ -386,4 +395,73 @@ def process_text(pattern: str, text: str, show_line_matches: bool = False, color
                 current_pos = 0
                 line_result = ""
                 for start, end in matches:
-                    line_result +=
+                    # Add text before match
+                    line_result += line[current_pos:start]
+                    # Add colored match
+                    match_text = line[start:end]
+                    line_result += f"{RED}{match_text}{RESET}" if color else match_text
+                    current_pos = end
+                # Add remaining text after last match
+                line_result += line[current_pos:]
+                result.append(line_result)
+            else:
+                # Show only the matches
+                for start, end in matches:
+                    match_text = line[start:end]
+                    result.append(f"{RED}{match_text}{RESET}" if color else match_text)
+
+    return '\n'.join(result)
+
+
+def main():
+    """
+    Main entry point of the program.
+
+    Handles command-line argument parsing and orchestrates the pattern matching
+    process. Supports reading from files or stdin and provides options for
+    output formatting.
+    """
+    # Set up command-line argument parser
+    parser = argparse.ArgumentParser(
+        description='A simplified grep implementation using NFA-based pattern matching')
+    parser.add_argument('pattern',
+        help='Regular expression pattern to search for')
+    parser.add_argument('files', nargs='*',
+        help='Files to search in (reads from stdin if no files provided)')
+    parser.add_argument('-l', '--lines', action='store_true',
+        help='Show entire lines containing matches instead of just matches')
+    parser.add_argument('--no-color', action='store_true',
+        help='Disable colored output')
+
+    args = parser.parse_args()
+
+    # Handle input from files or stdin
+    if not args.files:
+        # Read from stdin when no files are specified
+        try:
+            text = sys.stdin.read()
+            print(process_text(args.pattern, text, args.lines, not args.no_color))
+        except KeyboardInterrupt:
+            # Handle Ctrl+C gracefully
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error processing stdin: {str(e)}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Process each specified input file
+        for file_path in args.files:
+            try:
+                with open(file_path, 'r') as file:
+                    text = file.read()
+                    # Print file header if processing multiple files
+                    if len(args.files) > 1:
+                        print(f"\n==> {file_path} <==")
+                    print(process_text(args.pattern, text, args.lines, not args.no_color))
+            except FileNotFoundError:
+                print(f"Error: File '{file_path}' not found", file=sys.stderr)
+            except Exception as e:
+                print(f"Error processing file '{file_path}': {str(e)}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
