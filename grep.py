@@ -16,16 +16,49 @@ ASSOCIATIVITY = {
     "?": "r"
 }
 
+# NFA - Class for representing Nondeterministic finite automata
+class NFA:
+    def __init__(self):
+        self.num_states = 0
+        self.input_chars: list[str] = []
+        self.first_states: list[int] = []
+        self.second_states: list[int] = []
+        self.initial_state = 0
+
+    def add_state(self) -> int:
+        self.num_states += 1
+
+        self.input_chars.append("")
+        self.first_states.append(-1)
+        self.second_states.append(-1)
+
+        return self.num_states - 1
+
+    def add_transition(self,
+        state: int,
+        input_char: str,
+        first_state: int,
+        second_state = -1):
+
+        if (state < 0 or state > self.num_states):
+            raise ValueError("State value must be between 0" +
+                f" and the number of states ({self.num_states})")
+
+        self.input_chars[state] = input_char
+        self.first_states[state] = first_state
+        self.second_states[state] = second_state
+
+
 # AST Nodes definition
 class RootAST(ABC):
     @abstractmethod
-    def codegen(self, automaton):
+    def codegen(self, automaton: NFA) -> tuple[int, int]:
         pass
 
 
 class ExprAST(RootAST, ABC):
     @abstractmethod
-    def codegen(self, automaton):
+    def codegen(self, automaton: NFA) -> tuple[int, int]:
         pass
 
 class BinaryExprAST(ExprAST):
@@ -34,23 +67,62 @@ class BinaryExprAST(ExprAST):
         self.LHS = LHS
         self.RHS = RHS
 
-    def codegen(self, automaton):
-        pass
+    def codegen(self, automaton: NFA) -> tuple[int, int]:
+        initial_state = automaton.add_state()
+
+        lhs_initial_state, lhs_final_state = self.LHS.codegen(automaton)
+        rhs_initial_state, rhs_final_state = self.RHS.codegen(automaton)
+
+        final_state = automaton.add_state()
+
+        if (self.op == "."):
+            automaton.add_transition(initial_state, "ɛ", lhs_initial_state)
+            automaton.add_transition(lhs_final_state, "ɛ", rhs_initial_state)
+            automaton.add_transition(rhs_final_state, "ɛ", final_state)
+        elif (self.op == "|"):
+            automaton.add_transition(initial_state, "ɛ", lhs_initial_state, rhs_initial_state)
+            automaton.add_transition(final_state, "ɛ", lhs_final_state, rhs_final_state)
+
+        return (initial_state, final_state)
+
 
 class UnaryExprAST(ExprAST):
     def __init__(self, op: str, expr: ExprAST):
         self.op = op
         self.expr = expr
 
-    def codegen(self, automaton):
-        pass
+    def codegen(self, automaton: NFA) -> tuple[int, int]:
+        initial_state = automaton.add_state()
+
+        expr_initial_state, expr_final_state = self.expr.codegen(automaton)
+
+        final_state = automaton.add_state()
+
+        if (self.op == "*"):
+            automaton.add_transition(initial_state, "ɛ", expr_initial_state, final_state)
+            automaton.add_transition(expr_final_state, "ɛ", expr_initial_state, final_state)
+        elif (self.op == "?"):
+            automaton.add_transition(initial_state, "ɛ", expr_initial_state, final_state)
+            automaton.add_transition(expr_final_state, "ɛ", final_state)
+        elif (self.op == "+"):
+            automaton.add_transition(initial_state, "ɛ", expr_initial_state)
+            automaton.add_transition(expr_final_state, "ɛ", expr_initial_state, final_state)
+
+        return (initial_state, final_state)
+
 
 class CharExprAST(ExprAST):
     def __init__(self, char: str):
         self.char = char
 
-    def codegen(self, automaton):
-        pass
+    def codegen(self, automaton: NFA) -> tuple[int, int]:
+        initial_state = automaton.add_state()
+        final_state = automaton.add_state()
+
+        automaton.add_transition(initial_state, self.char, final_state)
+
+        return (initial_state, final_state)
+
 
 # Function that mangles the regex by adding a dot between simple characters
 def mangle_regex(regex: str) -> str:
@@ -61,7 +133,7 @@ def mangle_regex(regex: str) -> str:
     for i in range(regex_lenght - 1):
         mangled_regex.append(regex[i])
 
-        if (regex[i].isalpha() and regex[i+1].isalpha()):
+        if ((regex[i] != '(' and regex[i] != "|") and regex[i+1].isalpha()):
             mangled_regex.append(".")
 
     mangled_regex.append(regex[-1])
@@ -134,6 +206,13 @@ def main():
     regex = mangle_regex(regex)
 
     root = to_AST(to_postfix(regex))
+
+    automaton = NFA()
+    root.codegen(automaton)
+
+    print(automaton.input_chars)
+    print(automaton.first_states)
+    print(automaton.second_states)
 
 
 if __name__ == "__main__":
