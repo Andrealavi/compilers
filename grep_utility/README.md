@@ -131,3 +131,33 @@ The implementation is organized into several key components:
 - The NFA simulation has linear time complexity with respect to the input text length
 - State transitions are handled efficiently using lists
 - Overlapping matches are resolved by keeping the longest match at each position
+
+## Testing
+
+The implementation includes a comprehensive test suite using Python's built-in `unittest` framework. The tests cover all major components including NFA construction, regex parsing, pattern matching, and text processing.
+
+### Running the Tests
+
+To run the test suite:
+
+1. Ensure both `grep.py` and `test_grep.py` are in the same directory
+2. Run the tests using Python's unittest module:
+```bash
+python -m unittest test_grep.py
+```
+
+The test suite includes:
+- NFA functionality tests (state and transition management)
+- Regex parsing tests (mangling and postfix conversion)
+- AST construction tests
+- Pattern matching tests
+- Text processing and file handling tests
+
+To run specific test cases:
+```bash
+# Run a specific test class
+python -m unittest test_grep.TestNFA
+
+# Run a specific test method
+python -m unittest test_grep.TestNFA.test_add_state
+```
