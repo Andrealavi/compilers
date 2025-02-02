@@ -23,7 +23,6 @@ class NFA:
         self.input_chars: list[str] = []
         self.first_states: list[int] = []
         self.second_states: list[int] = []
-        self.initial_state = 0
 
     def add_state(self) -> int:
         self.num_states += 1
@@ -199,9 +198,44 @@ def to_AST(postfix_regex: list[str]) -> ExprAST:
 
     return expr_stack.pop()
 
+def simulate_NFA(automaton: NFA, input_string: str) -> bool:
+    current_list: list[int] = [0]
+    next_list: list[int] = []
+
+    for char in input_string:
+        for state in current_list:
+            if (automaton.input_chars[state] == char):
+                if (automaton.first_states[state] not in next_list and automaton.first_states[state] >= 0):
+                    next_list.append(automaton.first_states[state])
+
+                if (automaton.second_states[state] not in next_list and automaton.second_states[state] >= 0):
+                    next_list.append(automaton.second_states[state])
+            elif (automaton.input_chars[state] == "ɛ"):
+                if (automaton.first_states[state] not in current_list and automaton.first_states[state] >= 0):
+                    current_list.append(automaton.first_states[state])
+
+                if (automaton.second_states[state] not in current_list and automaton.second_states[state] >= 0):
+                    current_list.append(automaton.second_states[state])
+
+        current_list = next_list
+        next_list = []
+
+    for state in current_list:
+        if (automaton.input_chars[state] == "ɛ"):
+            if (automaton.first_states[state] not in current_list and automaton.first_states[state] >= 0):
+                current_list.append(automaton.first_states[state])
+
+            if (automaton.second_states[state] not in current_list and automaton.second_states[state] >= 0):
+                current_list.append(automaton.second_states[state])
+
+    if (automaton.num_states - 2) in current_list:
+        return True
+
+    return False
+
 
 def main():
-    regex = input("insert the regex:")
+    regex = input("insert the regex: ")
 
     regex = mangle_regex(regex)
 
@@ -210,9 +244,9 @@ def main():
     automaton = NFA()
     root.codegen(automaton)
 
-    print(automaton.input_chars)
-    print(automaton.first_states)
-    print(automaton.second_states)
+    input_string = input("Insert a string to match: ")
+
+    print(simulate_NFA(automaton, input_string))
 
 
 if __name__ == "__main__":
