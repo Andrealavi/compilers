@@ -46,7 +46,7 @@ class driver {
                                     // Values are added when generating a function or a letexpr binding
         std::vector<std::string> forwardDeclarations = {};
         std::vector<std::set<std::string>> constantsScopes = {std::set<std::string>()};
-        std::vector<LoopExprAST*> loopStack = {};
+        std::vector<ExprAST*> loopStack = {};
         std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
     	std::string file;            // Source file
@@ -372,6 +372,46 @@ class ForRangeExprAST : public LoopExprAST {
         ForRangeExprAST(ExprAST* elementExpr, ExprAST* arrayExpr, std::vector<ExprAST*> Body);
         Value *codegen(driver& drv) override;
         void visit() override;
+};
+
+/// CaseExprAST - Class that represents a switch case block of expressions
+class CaseExprAST : public ExprAST {
+    private:
+        ExprAST* number;
+        std::vector<ExprAST*> Body;
+        bool hasBreak = false;
+        bool isDefault = false;
+
+    public:
+        CaseExprAST(ExprAST* number, std::vector<ExprAST*> Body);
+        NumberExprAST* getNumber();
+        bool getHasBreak();
+        void visit() override;
+        Value* codegen(driver& drv) override;
+};
+
+/// CaseExprAST - Class that represents a switch case block of expressions
+class DefaultCaseExprAST : public ExprAST {
+    private:
+        std::vector<ExprAST*> Body;
+        bool hasBreak = false;
+
+    public:
+        DefaultCaseExprAST(std::vector<ExprAST*> Body);
+        void visit() override;
+        Value* codegen(driver& drv) override;
+};
+
+/// SwitchExprAST - Class that represents a switch statement
+class SwitchExprAST : public ExprAST {
+    private:
+        ExprAST* condExpr;
+        std::vector<ExprAST*> Body;
+
+    public:
+        SwitchExprAST(ExprAST* condExpr, std::vector<ExprAST*> Body);
+        void visit() override;
+        Value* codegen(driver& drv) override;
 };
 
 /// BreakExprAST - Class that represents a break instruction

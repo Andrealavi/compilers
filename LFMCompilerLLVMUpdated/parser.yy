@@ -70,6 +70,9 @@ YY_DECL;
   GLOBAL     "global"
   CONST      "const"
   FOR        "for"
+  SWITCH     "switch"
+  CASE       "case"
+  DEFAULT    "default"
   RANGE      "range"
   DO         "do"
   WHILE      "while"
@@ -112,6 +115,9 @@ YY_DECL;
 %type <ExprAST*> relexpr
 %type <ExprAST*> identifier
 %type <ExprAST*> arraydef
+%type <ExprAST*> switch_statement
+%type <std::vector<ExprAST*>> cases
+%type <ExprAST*> case_expr
 %type <ExprAST*> arraycomprehension
 %type <ExprAST*> assignment
 %type <ExprAST*> var_or_array
@@ -180,7 +186,19 @@ expr_or_other:
 |   assignment                          { $$ = $1; }
 |   arraydef                            { $$ = $1; }
 |   "const" binding                     { $$ = new AssignmentExprAST($2, true); }
+|   switch_statement                    { $$ = $1; }
 |   retexpr                             { $$ = $1; };
+
+switch_statement:
+    "switch" expr "{" cases "}"         { $$ = new SwitchExprAST($2, $4); };
+
+cases:
+    case_expr                           { $$ = std::vector<ExprAST*>{$1}; }
+|   case_expr cases                     { $2.insert($2.begin(), $1); $$ = $2; };
+
+case_expr:
+    "case" "number" "{" exprs "}"          { $$ = new CaseExprAST(new NumberExprAST($2), $4); };
+|   "case" "default" "{" exprs "}"         { $$ = new DefaultCaseExprAST($4); }
 
 assignment:
     binding                             { $$ = new AssignmentExprAST($1); }

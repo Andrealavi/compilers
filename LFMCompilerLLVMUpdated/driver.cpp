@@ -1,11 +1,3 @@
-#include <cmath>
-#include <csignal>
-#include <cstdlib>
-#include <llvm-18/llvm/IR/Constant.h>
-#include <llvm-18/llvm/IR/Constants.h>
-#include <string>
-#include <strings.h>
-#include <vector>
 #include "driver.hpp"
 #include "parser.hpp"
 
@@ -1554,6 +1546,141 @@ Value *ForRangeExprAST::codegen(driver& drv) {
 
     return retVal;
 };
+
+/// CaseExprAST
+CaseExprAST::CaseExprAST(ExprAST* number, std::vector<ExprAST*> Body)
+    : number(number), Body(Body) {};
+
+NumberExprAST* CaseExprAST::getNumber() { return dynamic_cast<NumberExprAST*>(number); };
+
+bool CaseExprAST::getHasBreak() { return hasBreak; };
+
+void CaseExprAST::visit() {
+    *drv.outputTarget << "[case ";
+
+    *drv.outputTarget << "[expr ";
+    number->visit();
+    *drv.outputTarget << "]";
+
+    *drv.outputTarget << "[in ";
+
+    for (ExprAST* expr : Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]]";
+};
+
+Value* CaseExprAST::codegen(driver& drv) {
+    Value* lastVal;
+
+    for (ExprAST* expr : Body) {
+        Value* lastVal = expr->codegen(drv);
+
+        if (dynamic_cast<BreakExprAST*>(expr)) {
+            hasBreak = true;
+        }
+    }
+
+    return lastVal;
+};
+
+/// DefaultCaseExprAST
+DefaultCaseExprAST::DefaultCaseExprAST(std::vector<ExprAST*> Body)
+    : Body(Body) {};
+
+
+void DefaultCaseExprAST::visit() {
+    *drv.outputTarget << "[default ";
+
+    for (ExprAST* expr : Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]";
+};
+
+Value* DefaultCaseExprAST::codegen(driver& drv) {
+    Value* lastVal;
+
+    for (ExprAST* expr : Body) {
+        Value* lastVal = expr->codegen(drv);
+    }
+
+    return lastVal;
+};
+
+/// SwitchExprAST - Class that represents a switch statement
+SwitchExprAST::SwitchExprAST(ExprAST* condExpr, std::vector<ExprAST*> Body)
+    : condExpr(condExpr), Body(Body) {};
+
+void SwitchExprAST::visit() {
+    *drv.outputTarget << "[switch ";
+
+    *drv.outputTarget << "[condExpr ";
+
+    condExpr->visit();
+
+    *drv.outputTarget << "][cases";
+
+    for (ExprAST* expr : Body) {
+        expr->visit();
+    }
+
+    *drv.outputTarget << "]]";
+};
+
+Value* SwitchExprAST::codegen(driver& drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    drv.loopStack.push_back(this);
+
+    Value* condExprVal = condExpr->codegen(drv);
+
+    BasicBlock *defaultBB = BasicBlock::Create(*context, "default", function);
+    BasicBlock *exitBlock = BasicBlock::Create(*context, "exit", function);
+
+    SwitchInst *switchInst = builder->CreateSwitch(condExprVal, defaultBB, Body.size() - 1);
+
+    BasicBlock *caseBB;
+    BasicBlock *nextBB = defaultBB;
+
+    builder->SetInsertPoint(defaultBB);
+
+    if (!dynamic_cast<DefaultCaseExprAST*>(Body[Body.size() - 1])) {
+        LogErrorV("There must be a default case in the switch statement. It has to be the last case");
+        return nullptr;
+    }
+
+    Body[Body.size() - 1]->codegen(drv);
+    builder->CreateBr(exitBlock);
+
+    for (int i = Body.size() - 2; i >= 0; i--) {
+        caseBB = BasicBlock::Create(*context, "case", function);
+
+        Value* constVal = (dynamic_cast<CaseExprAST*>(Body[i]))->getNumber()->codegen(drv);
+
+        switchInst->addCase(cast<ConstantInt>(constVal), caseBB);
+
+        builder->SetInsertPoint(caseBB);
+        Body[i]->codegen(drv);
+
+        if (CaseExprAST* caseExpr = dynamic_cast<CaseExprAST*>(Body[i])) {
+            if (!caseExpr->getHasBreak()) {
+                builder->CreateBr(nextBB);
+            }
+        }
+
+        nextBB = caseBB;
+    }
+
+    builder->SetInsertPoint(exitBlock);
+
+    drv.loopStack.pop_back();
+
+    return ConstantInt::get(Type::getInt32Ty(*context), 0);
+};
+
 
 /// BreakExprAST
 BreakExprAST::BreakExprAST() {};

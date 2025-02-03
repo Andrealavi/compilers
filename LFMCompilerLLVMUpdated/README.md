@@ -132,5 +132,10 @@ For the stable version of this compiler, please visit the main repository:
   - It is now possible to iterate over array using the following syntax: `for (element : array) expressions end`
   - Added a new AST node (`ForRangeExprAST`) to manage the operation
   - Added a new example to test it (`./code_examples/example_17.lfm`)
+- Implemented switch statement:
+  - Added switch statement using the specific `IRBuilder` method
+  - Changed `scanner.ll` and `parser.yy` accordingly
+  - Added three new AST nodes for managing switch statements (`CaseExprAST`, `DefaultCaseExprAST`, `SwitchExprAST`)
+  - Created a new example to test it (`./code_examples/example_18.lfm`)
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

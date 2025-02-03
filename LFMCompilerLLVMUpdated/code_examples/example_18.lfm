@@ -1,0 +1,24 @@
+function main()
+    y = 2;
+    x = 3 * y;
+
+    switch x {
+        case 1 {
+            x = 5;
+            break
+        }
+        case 2 {
+            x = 4;
+            break
+        }
+        case 6 {
+            x = 7;
+            break
+        }
+        case default {
+            x = 8
+        }
+    };
+
+    return x
+end
