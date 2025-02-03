@@ -128,11 +128,11 @@ For the stable version of this compiler, please visit the main repository:
   - Created a new AST node (`ComprExprAST`) to manage array comprehension
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Created a new example to test it (`./code_examples/example_16.lfm`)
-- Implemented for range loop:
+- Implemented for range loop: (Commit:  [0c070fe](https://github.com/Andrealavi/compilers/commit/0c070fe2fd6e22ee846cd40bd8bf1a381cbe3c04))
   - It is now possible to iterate over array using the following syntax: `for (element : array) expressions end`
   - Added a new AST node (`ForRangeExprAST`) to manage the operation
   - Added a new example to test it (`./code_examples/example_17.lfm`)
-- Implemented switch statement:
+- Implemented switch statement: (Commit:  [57020c6](https://github.com/Andrealavi/compilers/commit/57020c6f0bf1a4401890103a0deedd06dea855ca))
   - Added switch statement using the specific `IRBuilder` method
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added three new AST nodes for managing switch statements (`CaseExprAST`, `DefaultCaseExprAST`, `SwitchExprAST`)
