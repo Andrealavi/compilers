@@ -35,10 +35,39 @@ class Parser:
                     else:
                         self.parsing_table[non_terminal][terminal] = "accept"
 
-
-
-
     def parse(self, input_str: str) -> bool:
+        input_buffer = list(input_str.replace(" ", ""))
+
+        symbol_stack = ["E"]
+
+        while input_buffer:
+            if len(symbol_stack) == 0:
+                return False
+
+            symbol = symbol_stack.pop()
+
+            if symbol in self.grammar.keys():
+                try:
+                    tail = list(self.parsing_table[symbol][input_buffer[0]])
+
+                    tail.reverse()
+
+                    for char in tail:
+                        symbol_stack.append(char)
+                except KeyError:
+                    return False
+            else:
+                if symbol != "ɛ" and symbol != input_buffer.pop(0):
+                    return False
+
+        while symbol_stack:
+            symbol = symbol_stack.pop()
+
+            if symbol in self.grammar.keys() and "ɛ" not in self.grammar[symbol]:
+                return False
+            elif symbol not in self.grammar.keys():
+                return False
+
         return True
 
 def get_terminals_from_grammar(grammar: dict) -> list[str]:
@@ -131,15 +160,12 @@ def follow(nonterminal: str, grammar: dict) -> set[str]:
     return follow_set
 
 def main():
-    grammar = read_grammar("./prova2.txt")
+    grammar = read_grammar("./grammar.txt")
     parser = Parser(grammar)
-
-    print(grammar)
 
     parser.generate_parsing_table()
 
-    for k, v in parser.parsing_table.items():
-        print(k, v)
+    print(parser.parse("n*(n*(n+n))"))
 
 if __name__ == "__main__":
     main()
