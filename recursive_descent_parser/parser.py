@@ -72,13 +72,35 @@ def first(phrase: str, grammar: dict) -> set[str]:
     return first_set
 
 
-def follow(nonterminal: str, grammar: dict) -> list[str]:
-    return []
+def follow(nonterminal: str, grammar: dict) -> set[str]:
+    follow_set = set()
+
+    queue = [nonterminal]
+
+    while queue:
+        symbol = queue.pop()
+
+        for k, v in grammar.items():
+            for tail in v:
+                index = tail.find(symbol)
+
+                if index > -1 and index != (len(tail) - 1):
+                    [follow_set.add(char) for char in first(tail[index+1], grammar)]
+
+                    if "ɛ" in follow_set:
+                        follow_set.remove("ɛ")
+                        queue.insert(0,k)
+                elif index > -1 and k != symbol:
+                    queue.insert(0, k)
+
+    return follow_set
 
 def main():
     grammar = read_grammar("./prova2.txt")
 
-    print(first("T", grammar))
+    print(grammar)
+
+    print(follow("E", grammar))
 
 if __name__ == "__main__":
     main()
