@@ -70,6 +70,7 @@ blank   [ \t]
 "for"    return yy::parser::make_FOR       (loc);
 "switch" return yy::parser::make_SWITCH    (loc);
 "case"   return yy::parser::make_CASE      (loc);
+"struct" return yy::parser::make_STRUCT    (loc);
 "default" return yy::parser::make_DEFAULT  (loc);
 "range"  return yy::parser::make_RANGE     (loc);
 "break"  return yy::parser::make_BREAK     (loc);

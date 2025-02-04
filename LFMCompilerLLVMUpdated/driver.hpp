@@ -8,6 +8,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include <llvm-18/llvm/IR/DerivedTypes.h>
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/IR/Module.h"
@@ -46,6 +47,7 @@ class driver {
                                     // Values are added when generating a function or a letexpr binding
         std::vector<std::string> forwardDeclarations = {};
         std::vector<std::set<std::string>> constantsScopes = {std::set<std::string>()};
+        std::map<std::string, std::map<std::string, int>> structFieldNames;
         std::vector<ExprAST*> loopStack = {};
         std::vector<DefAST*> root;   // Vector of ASTs, one for each definition in the source file
     	yy::location location;       // Used by the scanner to locate tokens
@@ -134,10 +136,12 @@ class IdeExprAST : public ExprAST {
     private:
     	std::string Name;
         int index = -1;
+        std::string fieldName = "";
 
     public:
     	IdeExprAST(std::string &Name);
         IdeExprAST(std::string &Name, int index);
+        IdeExprAST(std::string &Name, std::string fieldName);
     	lexval getLexVal() const;
     	void visit() override;
     	Value *codegen(driver& drv) override;
@@ -149,11 +153,13 @@ class AssignmentExprAST : public ExprAST {
         std::pair<std::string, ExprAST*> binding;
         bool isConst;
         int index = -1;
+        std::string fieldName = "";
 
     public:
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding);
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst);
         AssignmentExprAST(std::pair<std::string, ExprAST*> binding, int index);
+        AssignmentExprAST(std::pair<std::string, ExprAST*> binding, std::string fieldName);
         lexval getLexVal() const;
         void visit() override;
         Value *codegen(driver& drv) override;
@@ -420,6 +426,18 @@ class BreakExprAST : public ExprAST {
         BreakExprAST();
         void visit() override;
         Value *codegen(driver& drv) override;
+};
+
+/// StructExprAST - Class that represents struct statement to create custom data types
+class StructExprAST : public ExprAST {
+    private:
+        ExprAST* idExpr;
+        std::vector<std::pair<std::string, ExprAST*>> body;
+
+    public:
+        StructExprAST(ExprAST* idExpr, std::vector<std::pair<std::string, ExprAST*>> body);
+        void visit() override;
+        Value *codegen(driver &drv) override;
 };
 
 #endif // ! DRIVER_HH

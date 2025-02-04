@@ -1,5 +1,6 @@
 #include "driver.hpp"
 #include "parser.hpp"
+#include <llvm-18/llvm/IR/DerivedTypes.h>
 
 // Generation of an instance for each of the LLVMContext,
 // Module and IRBuilder classes. In the case of a single module, this is sufficient
@@ -192,6 +193,9 @@ IdeExprAST::IdeExprAST(std::string &Name): Name(Name) {};
 
 IdeExprAST::IdeExprAST(std::string &Name, int index): Name(Name), index(index) {};
 
+IdeExprAST::IdeExprAST(std::string &Name, std::string fieldName):  Name(Name), fieldName(fieldName) {};
+
+
 lexval IdeExprAST::getLexVal() const {
     lexval lval = Name;
     return lval;
@@ -224,6 +228,23 @@ Value *IdeExprAST::codegen(driver& drv) {
             Value *elementPtr = builder->CreateInBoundsGEP(arrayType, L, indices);
 
             V = builder->CreateLoad(Type::getInt32Ty(*context), elementPtr, Name);
+        } else if (fieldName != "") {
+            StructType *structType = cast<StructType>(L->getAllocatedType());
+
+            auto it = drv.structFieldNames[Name].find(fieldName);
+
+            if (it == drv.structFieldNames[Name].end()) {
+                LogErrorV("Field name "+fieldName+" not defined");
+                return nullptr;
+            }
+
+            std::vector<Value*> indices = {
+                ConstantInt::get(Type::getInt32Ty(*context), 0),
+                ConstantInt::get(Type::getInt32Ty(*context), drv.structFieldNames[Name][fieldName]),
+            };
+
+            Value *elementPtr = builder->CreateGEP(structType, L, indices);
+            V = builder->CreateLoad(Type::getInt32Ty(*context), elementPtr, Name+"."+fieldName);
         } else {
             V = builder->CreateLoad(Type::getInt32Ty(*context),
                                             L, Name);
@@ -248,6 +269,8 @@ AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding)
 AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, int index)
     : binding(binding), index(index) { isConst = false; };
 
+AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, std::string fieldName)
+    : binding(binding), fieldName(fieldName) { isConst = false; };
 
 AssignmentExprAST::AssignmentExprAST(std::pair<std::string, ExprAST*> binding, bool isConst)
     : binding(binding), isConst(isConst) {};
@@ -260,6 +283,8 @@ lexval AssignmentExprAST::getLexVal() const {
 void AssignmentExprAST::visit() {
     if (index >= 0) {
         *drv.outputTarget << "[= " << drv.opening << binding.first << index << drv.closing;
+    } else if (fieldName != "") {
+        *drv.outputTarget << "[= " << drv.opening << binding.first << fieldName << drv.closing;
     } else {
         *drv.outputTarget << "[= " << drv.opening << binding.first << drv.closing;
     }
@@ -301,6 +326,24 @@ Value *AssignmentExprAST::codegen(driver& drv) {
         };
 
         Value *elementPtr = builder->CreateInBoundsGEP(arrayType, BInst, indices);
+
+        builder->CreateStore(boundval, elementPtr);
+    } else if (fieldName != "") {
+        StructType *structType = cast<StructType>(BInst->getAllocatedType());
+
+        auto it = drv.structFieldNames[binding.first].find(fieldName);
+
+        if (it == drv.structFieldNames[binding.first].end()) {
+            LogErrorV("Field name "+fieldName+" not defined");
+            return nullptr;
+        }
+
+        std::vector<Value*> indices = {
+            ConstantInt::get(Type::getInt32Ty(*context), 0),
+            ConstantInt::get(Type::getInt32Ty(*context), drv.structFieldNames[binding.first][fieldName]),
+        };
+
+        Value *elementPtr = builder->CreateGEP(structType, BInst, indices);
 
         builder->CreateStore(boundval, elementPtr);
     } else {
@@ -1698,4 +1741,55 @@ Value* BreakExprAST::codegen(driver& drv) {
     BasicBlock* exitBlock = cast<BasicBlock>(builder->GetInsertBlock()->getParent()->getValueSymbolTable()->lookup("exit"));
 
     return builder->CreateBr(exitBlock);
+};
+
+/// StructExprAST
+StructExprAST::StructExprAST(ExprAST* idExpr, std::vector<std::pair<std::string, ExprAST*>> body)
+    : idExpr(idExpr), body(body) {};
+
+void StructExprAST::visit() {
+    *drv.outputTarget << "[struct ";
+
+    idExpr->visit();
+
+    *drv.outputTarget << "[body ";
+
+    for (auto pair : body) {
+        *drv.outputTarget << "[" << pair.first << "]";
+        pair.second->visit();
+    }
+
+    *drv.outputTarget << "]]";
+};
+
+Value *StructExprAST::codegen(driver &drv) {
+    Function *function = builder->GetInsertBlock()->getParent();
+
+    std::string ide = std::get<std::string>(static_cast<IdeExprAST*>(idExpr)->getLexVal());
+    std::vector<Type*> memberTypes;
+
+    for (int i = 0; i < body.size(); i++) {
+        memberTypes.push_back(Type::getInt32Ty(*context));
+    }
+
+    StructType *structType = StructType::get(*context, memberTypes, false);
+    AllocaInst *structInst = MakeAlloca(function, ide, structType);
+
+    drv.NamedValues[ide] = structInst;
+
+    std::vector<Value*> indices = {
+        ConstantInt::get(Type::getInt32Ty(*context), 0),
+        ConstantInt::get(Type::getInt32Ty(*context), 1)
+    };
+
+    for (int i = 0; i < body.size(); i++) {
+        indices[1] = ConstantInt::get(Type::getInt32Ty(*context), i);
+
+        Value *fieldPtr = builder->CreateGEP(structType, structInst, indices);
+        builder->CreateStore(body[i].second->codegen(drv), fieldPtr);
+
+        drv.structFieldNames[ide][body[i].first] = i;
+    }
+
+    return structInst;
 };

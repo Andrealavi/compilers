@@ -137,5 +137,14 @@ For the stable version of this compiler, please visit the main repository:
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added three new AST nodes for managing switch statements (`CaseExprAST`, `DefaultCaseExprAST`, `SwitchExprAST`)
   - Created a new example to test it (`./code_examples/example_18.lfm`)
+- Implemented custom data types (structs): (Commit: [ADD_HASH])
+  - Added support for creating and using struct-like data types with immediate instance creation
+  - It is **not** possible to reuse the created struct data type
+  - The syntax allows defining fields and their values in a single statement: `struct { x = 2, y = 3 } z`
+  - Added field access using array-like syntax: `z[x]` to get or set field values
+  - Created a new AST node (`StructExprAST`) to manage struct creation and field initialization
+  - Modified `IdeExprAST` and `AssignmentExprAST` to handle struct field access and modification
+  - Used LLVM's `StructType` and `CreateGEP` instructions for managing struct layout and field access
+  - Added a new example to test structs (`./code_examples/example_19.lfm`)
 
 **Note:** Features listed above may not be compatible with newer implementations. Check out the specific commit to test individual features.

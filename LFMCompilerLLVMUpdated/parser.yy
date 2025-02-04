@@ -78,6 +78,7 @@ YY_DECL;
   WHILE      "while"
   BREAK      "break"
   RETURN     "return"
+  STRUCT     "struct"
   IF         "if"
   PIPE       "|>"
   AND        "and"
@@ -118,6 +119,7 @@ YY_DECL;
 %type <ExprAST*> switch_statement
 %type <std::vector<ExprAST*>> cases
 %type <ExprAST*> case_expr
+%type <ExprAST*> struct_def
 %type <ExprAST*> arraycomprehension
 %type <ExprAST*> assignment
 %type <ExprAST*> var_or_array
@@ -187,7 +189,11 @@ expr_or_other:
 |   arraydef                            { $$ = $1; }
 |   "const" binding                     { $$ = new AssignmentExprAST($2, true); }
 |   switch_statement                    { $$ = $1; }
+|   struct_def                          { $$ = $1; }
 |   retexpr                             { $$ = $1; };
+
+struct_def:
+    "struct" "{" bindings "}" identifier      { $$ = new StructExprAST($5, $3); };
 
 switch_statement:
     "switch" expr "{" cases "}"         { $$ = new SwitchExprAST($2, $4); };
@@ -203,13 +209,15 @@ case_expr:
 assignment:
     binding                             { $$ = new AssignmentExprAST($1); }
 |   "id" "[" "number" "]" "=" expr      { std::pair<std::string, ExprAST*> C ($1,$6); $$ = new AssignmentExprAST(C, $3); };
+|   "id" "[" "id" "]" "=" expr          { std::pair<std::string, ExprAST*> C ($1,$6); $$ = new AssignmentExprAST(C, $3); };
 
 identifier:
     "id"                   { $$ = new IdeExprAST($1); }
 
 var_or_array:
     identifier             { $$ = $1; }
-|   "id" "[" "number" "]"  { $$ = new IdeExprAST($1, $3); };
+|   "id" "[" "number" "]"  { $$ = new IdeExprAST($1, $3); }
+|   "id" "[" "id" "]"      { $$ = new IdeExprAST($1, $3); };
 
 expr:
     expr "+" expr          { $$ = new BinaryExprAST("+",$1,$3); }

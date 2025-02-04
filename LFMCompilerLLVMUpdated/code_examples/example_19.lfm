@@ -1,0 +1,7 @@
+function main()
+    struct { x = 2, y = 3 } z;
+
+    z[x] = 5;
+
+    return z[x] + z[y]
+end
