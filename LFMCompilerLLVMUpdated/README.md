@@ -137,7 +137,7 @@ For the stable version of this compiler, please visit the main repository:
   - Changed `scanner.ll` and `parser.yy` accordingly
   - Added three new AST nodes for managing switch statements (`CaseExprAST`, `DefaultCaseExprAST`, `SwitchExprAST`)
   - Created a new example to test it (`./code_examples/example_18.lfm`)
-- Implemented custom data types (structs): (Commit: [ADD_HASH])
+- Implemented custom data types (structs): (Commit:  [31ed17b](https://github.com/Andrealavi/compilers/commit/31ed17ba719a568db4a008cba166e74433fde77f))
   - Added support for creating and using struct-like data types with immediate instance creation
   - It is **not** possible to reuse the created struct data type
   - The syntax allows defining fields and their values in a single statement: `struct { x = 2, y = 3 } z`
