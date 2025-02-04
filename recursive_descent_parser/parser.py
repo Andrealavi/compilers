@@ -3,6 +3,41 @@ class Parser:
         self.grammar = grammar
         self.parsing_table = {}
 
+    def generate_parsing_table(self) -> None:
+        non_terminals = self.grammar.keys()
+
+        for non_terminal in non_terminals:
+            self.parsing_table[non_terminal] = {}
+
+            for tail in self.grammar[non_terminal]:
+                if tail[-1] == "$":
+                    continue
+
+                tail_first = first(tail, self.grammar)
+
+                if "ɛ" in tail_first:
+                    non_terminal_follow = follow(non_terminal, self.grammar)
+
+                    for terminal in non_terminal_follow:
+                        if terminal in self.parsing_table[non_terminal].keys():
+                            raise ValueError("The grammar is not LL(1)")
+
+                        self.parsing_table[non_terminal][terminal] = tail
+
+                    tail_first.remove("ɛ")
+
+                for terminal in tail_first:
+                    if terminal in self.parsing_table[non_terminal].keys():
+                        raise ValueError("The grammar is not LL(1)")
+
+                    if terminal != "$":
+                        self.parsing_table[non_terminal][terminal] = tail
+                    else:
+                        self.parsing_table[non_terminal][terminal] = "accept"
+
+
+
+
     def parse(self, input_str: str) -> bool:
         return True
 
@@ -97,10 +132,14 @@ def follow(nonterminal: str, grammar: dict) -> set[str]:
 
 def main():
     grammar = read_grammar("./prova2.txt")
+    parser = Parser(grammar)
 
     print(grammar)
 
-    print(follow("E", grammar))
+    parser.generate_parsing_table()
+
+    for k, v in parser.parsing_table.items():
+        print(k, v)
 
 if __name__ == "__main__":
     main()
