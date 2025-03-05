@@ -3,9 +3,9 @@
 //    TestPass.cpp
 //
 // DESCRIPTION:
-//    Visits all functions in a module and prints their names. Strictly speaking, 
-//    this is an analysis pass (i.e. //    the functions are not modified). However, 
-//    in order to keep things simple there's no 'print' method here (every analysis 
+//    Visits all functions in a module and prints their names. Strictly speaking,
+//    this is an analysis pass (i.e. //    the functions are not modified). However,
+//    in order to keep things simple there's no 'print' method here (every analysis
 //    pass should implement it).
 //
 // USAGE:
@@ -20,6 +20,7 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
+#include <llvm-18/llvm/IR/BasicBlock.h>
 
 using namespace llvm;
 
@@ -37,7 +38,18 @@ struct TestPass: PassInfoMixin<TestPass> {
   // corresponding pass manager (to be queried if need be)
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
 
-  	errs() << F.getName();
+  	errs() << "Function name: " << F.getName() << "\n";
+    errs() << "Number of arguments: " << F.arg_size() << "\n";
+    errs() << "Number of BB: " << F.size() << "\n";
+
+    int counter = 0;
+    for (BasicBlock &BB : F) {
+        for (Instruction &I: BB) {
+            counter++;
+        }
+    }
+
+    errs() << "Instruction Number: " << counter << "\n";
 
   	return PreservedAnalyses::all();
 }
