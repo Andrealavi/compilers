@@ -34,6 +34,8 @@ endif()
 # 3. ADD THE TARGET
 #===============================================================================
 add_library(TestPass SHARED TestPass.cpp)
+add_library(TestPassModule SHARED TestPassModule.cpp)
+
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
