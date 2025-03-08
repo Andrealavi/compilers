@@ -9,6 +9,11 @@
 #include "LocalOpts.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/InstrTypes.h"
+#include <cstdint>
+#include <llvm-18/llvm/IR/Constant.h>
+#include <llvm-18/llvm/IR/Constants.h>
+#include <llvm-18/llvm/IR/Instruction.h>
+#include <llvm-18/llvm/Support/Casting.h>
 // L'include seguente va in LocalOpts.h
 
 using namespace llvm;
@@ -65,14 +70,59 @@ bool runOnBasicBlock(BasicBlock &B) {
     Inst1st.replaceAllUsesWith(NewInst);
 
     return true;
-  }
+}
 
+bool strenghtReduction(BasicBlock &BB) {
+    for (Instruction &Inst : BB) {
+        if (Inst.getOpcode() == Instruction::Mul) {
+            Value *op0 = Inst.getOperand(0);
+            Value *op1 = Inst.getOperand(1);
+
+            bool canBeOptimized = false;
+            bool isZero = false;
+
+            int64_t opValue = 0;
+            ConstantInt *c;
+
+            if (ConstantInt *CI = dyn_cast<ConstantInt>(op0)) {
+                int64_t opValue = CI->getSExtValue();
+
+                if (opValue % 2 == 0) {
+                    canBeOptimized = true;
+                    isZero = true;
+                };
+
+                c = CI;
+            } else if (ConstantInt *CI = dyn_cast<ConstantInt>(op1)) {
+                int64_t opValue = CI->getSExtValue();
+
+                if (opValue % 2 == 0) canBeOptimized = true;
+
+                c = CI;
+            }
+
+            if (canBeOptimized) {
+                Instruction *newInst = BinaryOperator::Create(
+                    Instruction::Shl, !isZero ? op0 : op1, ConstantInt::get(c->getType(), opValue / 2)
+                );
+
+                newInst->insertAfter(&Inst);
+                // Si possono aggiornare le singole references separatamente?
+                // Controlla la documentazione e prova a rispondere.
+                Inst.replaceAllUsesWith(newInst);
+
+            }
+        }
+    }
+
+    return true;
+}
 
 bool runOnFunction(Function &F) {
   bool Transformed = false;
 
   for (auto Iter = F.begin(); Iter != F.end(); ++Iter) {
-    if (runOnBasicBlock(*Iter)) {
+    if (strenghtReduction(*Iter)) {
       Transformed = true;
     }
   }
