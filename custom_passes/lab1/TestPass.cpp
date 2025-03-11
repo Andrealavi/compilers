@@ -16,10 +16,11 @@
 //
 // License: MIT
 //=============================================================================
-#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Instruction.h"
 
 using namespace llvm;
 
@@ -42,11 +43,18 @@ struct TestPass: PassInfoMixin<TestPass> {
     errs() << "Number of BB: " << F.size() << "\n";
 
     int counter = 0;
+    int functionCounter = 0;
     for (BasicBlock &BB : F) {
         for (Instruction &I: BB) {
             counter++;
+
+            if (CallInst *call = dyn_cast<CallInst>(&I)) {
+                functionCounter++;
+            }
         }
     }
+
+    errs() << "Function calls Number: " << functionCounter << "\n";
 
     errs() << "Instruction Number: " << counter << "\n";
 
