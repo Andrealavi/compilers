@@ -38,7 +38,7 @@ struct TestPass: PassInfoMixin<TestPass> {
   // corresponding pass manager (to be queried if need be)
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
 
-  	errs() << "Function name: " << F.getName() << "\n";
+    errs() << "Function name: " << F.getName() << "\n";
     errs() << "Number of arguments: " << F.arg_size() << "\n";
     errs() << "Number of BB: " << F.size() << "\n";
 
@@ -58,7 +58,7 @@ struct TestPass: PassInfoMixin<TestPass> {
 
     errs() << "Instruction Number: " << counter << "\n";
 
-  	return PreservedAnalyses::all();
+    return PreservedAnalyses::all();
 }
 
 
