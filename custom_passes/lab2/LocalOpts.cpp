@@ -10,10 +10,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/InstrTypes.h"
 #include <cstdint>
-#include <llvm-18/llvm/IR/Constant.h>
-#include <llvm-18/llvm/IR/Constants.h>
-#include <llvm-18/llvm/IR/Instruction.h>
-#include <llvm-18/llvm/Support/Casting.h>
 // L'include seguente va in LocalOpts.h
 
 using namespace llvm;
