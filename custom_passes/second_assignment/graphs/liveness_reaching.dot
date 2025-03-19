@@ -1,0 +1,21 @@
+digraph G {
+    rankdir=TB;
+    node [shape=rect];
+
+    entry [label="entry", xlabel="", shape=rect];
+    exit [label="exit", xlabel="", shape=rect];
+
+    B1 [label="d1: i = m - 1\nd2: j = n\nd3: a = u1", xlabel="B1"];
+    B2 [label="d4: i = i + 1\nd5: j = j - 1", xlabel="B2"];
+    B3 [label="d6: a = u2", xlabel="B3"];
+    B4 [label="d7: i = u3", xlabel="B4"];
+
+    entry -> B1;
+    B1 -> B2;
+    B2 -> B3;
+    B2 -> B4;
+    B3 -> B2;
+    B4 -> exit;
+    B2 -> B2 [label="loop"];
+}
+

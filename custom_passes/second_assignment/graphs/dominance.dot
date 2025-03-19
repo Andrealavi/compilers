@@ -1,0 +1,29 @@
+digraph SimpleFlowGraph {
+    // Graph settings for better layout
+    rankdir=TB;
+    node [shape=box, fontname="monospace", width=1.5, height=0.5];
+    edge [fontname="monospace"];
+    
+    // Define nodes
+    A [label="A"];
+    B [label="B"];
+    C [label="C"];
+    D [label="D"];
+    E [label="E"];
+    F [label="F"];
+    G [label="G"];
+    
+    // Define edges
+    A -> B;
+    A -> C;
+    C -> D;
+    C -> E;
+    D -> F;
+    E -> F;
+    F -> G;
+    B -> G;
+    
+    // Set node ranks to control layout
+    {rank=same; B; C;}
+    {rank=same; D; E;}
+}

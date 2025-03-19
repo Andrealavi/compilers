@@ -1,0 +1,33 @@
+digraph ControlFlowGraph {
+    // Graph settings for better layout
+    rankdir=TB;
+    node [shape=box, fontname="monospace"];
+    edge [fontname="monospace"];
+    
+    // Define special nodes
+    entry [label="entry", shape=box, style="rounded"];
+    exit [label="exit", shape=box, style="rounded"];
+    
+    // Condition node with better text handling
+    condition [label="(a!=b) ?", shape=box, width=2];
+    
+    // Label nodes with BB identifiers
+    entry [xlabel="BB1"];
+    condition [xlabel="BB2"];
+    assign_x_b_minus_a [label="x=b-a", xlabel="BB3"];
+    assign_x_a_minus_b_left [label="x=a-b", xlabel="BB4"];
+    assign_y_b_minus_a [label="y=b-a", xlabel="BB5"];
+    assign_a_0 [label="a=0", xlabel="BB6"];
+    assign_x_a_minus_b_right [label="x=a-b", xlabel="BB7"];
+    exit [xlabel="BB8"];
+    
+    // Create the edges
+    entry -> condition;
+    condition -> assign_x_b_minus_a;
+    condition -> assign_y_b_minus_a;
+    assign_x_b_minus_a -> assign_x_a_minus_b_left;
+    assign_y_b_minus_a -> assign_a_0;
+    assign_a_0 -> assign_x_a_minus_b_right;
+    assign_x_a_minus_b_left -> exit;
+    assign_x_a_minus_b_right -> exit;
+}

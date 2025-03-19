@@ -1,0 +1,49 @@
+digraph ControlFlowGraph {
+    // Graph settings for better layout
+    rankdir=TB;
+    node [shape=box, fontname="monospace"];
+    edge [fontname="monospace"];
+    
+    // Define special nodes
+    entry [label="entry", shape=box, style="rounded"];
+    exit [label="exit", shape=box, style="rounded"];
+    
+    // Regular nodes
+    k_assign [label="k=2"];
+    if_node [label="if"];
+    a_plus [label="a=k+2"];
+    a_mult [label="a=k*2"];
+    x_5 [label="x=5"];
+    x_8 [label="x=8"];
+    k_eq_a [label="k=a"];
+    while_node [label="while"];
+    b_2 [label="b=2"];
+    x_plus [label="x=a+k"];
+    y_mult [label="y=a*b"];
+    k_incr [label="k++"];
+    print_node [label="print(a+x)", width=1.5];
+    
+    // Create the main flow path
+    entry -> k_assign;
+    k_assign -> if_node;
+    
+    // If branches
+    if_node -> a_plus;
+    if_node -> a_mult;
+    a_plus -> x_5;
+    a_mult -> x_8;
+    x_5 -> k_eq_a;
+    x_8 -> k_eq_a;
+    
+    // Loop structure
+    k_eq_a -> while_node;
+    while_node -> b_2;
+    b_2 -> x_plus;
+    x_plus -> y_mult;
+    y_mult -> k_incr;
+    k_incr -> while_node [constraint=false];
+    
+    // Exit path
+    while_node -> print_node [dir="forward"];
+    print_node -> exit;
+}

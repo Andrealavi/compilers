@@ -1,0 +1,30 @@
+digraph ControlFlowGraph {
+    // Graph settings for better layout
+    rankdir=TB;
+    node [shape=box, fontname="monospace"];
+    edge [fontname="monospace"];
+    
+    // Define nodes with BB labels
+    entry [label="entry", shape=box, style="rounded", xlabel="BB1"];
+    x_assign [label="x=a-b", xlabel="BB2"];
+    y_assign [label="y=a*b", xlabel="BB3"];
+    condition [label="(y!=(a-b))?", width=2, xlabel="BB4"];
+    a_decr [label="a=a-1", xlabel="BB5"];
+    x_reassign [label="x=a-b", xlabel="BB6"];
+    exit [label="exit", shape=box, style="rounded", xlabel="BB7"];
+    
+    // Create edges with better label placement
+    entry -> x_assign;
+    x_assign -> y_assign;
+    y_assign -> condition;
+    condition -> a_decr [label="      true        ", labelangle=90];
+    condition -> exit [label="      false        ", labelangle=-90];
+    a_decr -> x_reassign;
+    
+    // Create the loop edge back to condition (showing partial view)
+    x_reassign -> y_assign [constraint=false];
+    
+    // Add invisible node to help with layout
+    invisible [style=invis, shape=point, width=0, height=0];
+    invisible -> y_assign [style=invis];
+}
