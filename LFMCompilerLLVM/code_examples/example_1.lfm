@@ -6,7 +6,7 @@ function f(x)
            end * if x==2 : 5;
                     true : 2
                  end
-  end 
+  end
 end
 function main()
    f(2)
