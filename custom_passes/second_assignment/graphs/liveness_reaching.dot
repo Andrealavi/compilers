@@ -14,8 +14,8 @@ digraph G {
     B1 -> B2;
     B2 -> B3;
     B2 -> B4;
-    B3 -> B2;
+    B3 -> B4;
+    B4 -> B2;
     B4 -> exit;
-    B2 -> B2 [label="loop"];
 }
 
